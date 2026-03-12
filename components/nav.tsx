@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Brain, ListTodo, CalendarDays, BarChart3 } from "lucide-react";
+import { Brain, ListTodo, BarChart3 } from "lucide-react";
 
 const links = [
   { href: "/", label: "Dump", icon: Brain },
   { href: "/tasks", label: "Tasks", icon: ListTodo },
-  { href: "/plan", label: "Plan", icon: CalendarDays },
   { href: "/progress", label: "Progress", icon: BarChart3 },
 ];
 

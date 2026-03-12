@@ -108,7 +108,7 @@ export default function ProgressPage() {
     }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div>
         <h2 className="text-2xl font-bold">Progress</h2>
         <p className="text-muted-foreground text-sm mt-1">

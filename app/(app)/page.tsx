@@ -13,7 +13,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div>
         <h2 className="text-2xl font-bold">Brain Dump</h2>
         <p className="text-muted-foreground text-sm mt-1">

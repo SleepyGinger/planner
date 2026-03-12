@@ -24,6 +24,7 @@ export const CATEGORIES: TaskCategory[] = [
 export interface Task {
   id: string;
   title: string;
+  emoji: string;
   description: string;
   category: TaskCategory;
   priority: 1 | 2 | 3;
@@ -34,6 +35,8 @@ export interface Task {
   userId: string;
   createdAt: string;
   completedAt: string | null;
+  sortOrder?: number;
+  tags?: string[];
 }
 
 export interface Dump {
@@ -45,10 +48,12 @@ export interface Dump {
 
 export interface ParsedTask {
   title: string;
+  emoji: string;
   description: string;
   category: TaskCategory;
   priority: 1 | 2 | 3;
   estimatedMinutes: number;
+  tags?: string[];
 }
 
 // The 28 business days off: March 11 - April 17, 2026

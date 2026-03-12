@@ -13,7 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <AuthGuard>
       <div className="min-h-screen pb-20">
         <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center justify-between h-14 px-4 max-w-2xl mx-auto">
+          <div className="flex items-center justify-between h-14 px-4 lg:px-8">
             <h1 className="font-bold text-lg">Time Off Planner</h1>
             <div className="flex items-center gap-2">
               {user?.photoURL && (
@@ -30,7 +30,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="max-w-2xl mx-auto px-4 py-6">{children}</main>
+        <main className="px-4 lg:px-8 py-6">{children}</main>
         <Nav />
       </div>
     </AuthGuard>

@@ -5,6 +5,8 @@ import {
   User,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import { getFirebaseAuth, googleProvider } from "./firebase";
@@ -29,6 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const auth = getFirebaseAuth();
+    // Check for redirect result on mount
+    getRedirectResult(auth).catch(() => {});
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setLoading(false);
@@ -37,7 +41,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
-    await signInWithPopup(getFirebaseAuth(), googleProvider);
+    const auth = getFirebaseAuth();
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code;
+      // Popup blocked or closed — fall back to redirect
+      if (
+        code === "auth/popup-blocked" ||
+        code === "auth/popup-closed-by-user" ||
+        code === "auth/cancelled-popup-request"
+      ) {
+        await signInWithRedirect(auth, googleProvider);
+      } else {
+        console.error("Auth error:", e);
+        throw e;
+      }
+    }
   };
 
   const signOut = async () => {

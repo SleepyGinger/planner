@@ -107,6 +107,7 @@ export function TaskCard({ task, onUpdate, onPlanDate, compact }: TaskCardProps)
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
+            {task.emoji && <span className="text-lg leading-none">{task.emoji}</span>}
             <span
               className={cn(
                 "font-medium text-sm",

@@ -14,7 +14,10 @@
           "http://localhost:3000",
           "http://localhost",
           "https://paternity-planner.firebaseapp.com",
-          "https://paternity-planner.web.app"
+          "https://paternity-planner.web.app",
+          "https://time-off-planner.vercel.app",
+          "https://time-off-planner-danspots-projects.vercel.app",
+          "https://planner.dansalazar.org"
         ]
       }
     }
