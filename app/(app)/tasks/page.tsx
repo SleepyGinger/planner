@@ -558,11 +558,20 @@ export default function TasksPage() {
     })
   );
 
+  const [fetchError, setFetchError] = useState("");
+
   const fetchTasks = async () => {
     if (!user) return;
-    const t = await getTasks(user.uid);
-    setTasks(t);
-    setLoading(false);
+    try {
+      const t = await getTasks(user.uid);
+      setTasks(t);
+      setFetchError("");
+    } catch (e: unknown) {
+      console.error("Failed to fetch tasks:", e);
+      setFetchError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -734,6 +743,12 @@ export default function TasksPage() {
           </Button>
         )}
       </div>
+
+      {fetchError && (
+        <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+          Failed to load tasks: {fetchError}
+        </div>
+      )}
 
       {/* Calendar strip */}
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
