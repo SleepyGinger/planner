@@ -9,7 +9,13 @@
     "providers": {
       "googleSignIn": {
         "oAuthBrandDisplayName": "Time Off Planner",
-        "supportEmail": "dan@example.com"
+        "supportEmail": "danielrsalazar@gmail.com",
+        "authorizedRedirectUris": [
+          "http://localhost:3000",
+          "http://localhost",
+          "https://paternity-planner.firebaseapp.com",
+          "https://paternity-planner.web.app"
+        ]
       }
     }
   }

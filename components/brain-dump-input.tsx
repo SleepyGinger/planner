@@ -16,6 +16,7 @@ import {
 import { Sparkles, Loader2, Plus, Check, X, Pencil } from "lucide-react";
 import { ParsedTask, CATEGORIES, TaskCategory } from "@/lib/types";
 import { useAuth } from "@/lib/auth-context";
+import { formatMinutes } from "@/lib/format";
 import { createDump, createTasks } from "@/lib/firestore";
 
 export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void }) {
@@ -268,7 +269,7 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
                         <span className="font-medium text-sm">{task.title}</span>
                         <Badge variant="outline" className="text-xs">{task.category}</Badge>
                         <Badge variant="secondary" className="text-xs">P{task.priority}</Badge>
-                        <span className="text-xs text-muted-foreground">{task.estimatedMinutes}m</span>
+                        <span className="text-xs text-muted-foreground">{formatMinutes(task.estimatedMinutes)}</span>
                       </div>
                       {task.description && (
                         <p className="text-xs text-muted-foreground mt-1">

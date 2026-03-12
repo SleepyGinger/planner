@@ -7,23 +7,16 @@ import { Task } from "@/lib/types";
 import { TaskCard } from "@/components/task-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Loader2, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatMinutes } from "@/lib/format";
 import {
   getUsableDays,
   formatDate,
   formatDateShort,
   getTodayISO,
   isToday,
-  getRemainingUsableDays,
 } from "@/lib/dates";
 
 export default function PlanPage() {
@@ -31,8 +24,6 @@ export default function PlanPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(getTodayISO());
-  const [planDialogOpen, setPlanDialogOpen] = useState(false);
-  const [planningTaskId, setPlanningTaskId] = useState<string | null>(null);
 
   const usableDays = getUsableDays();
   const today = getTodayISO();
@@ -51,25 +42,22 @@ export default function PlanPage() {
   const tasksForDate = (date: string) =>
     tasks.filter((t) => t.plannedDate === date);
 
-  const selectedTasks = tasksForDate(selectedDate);
+  const selectedTasks = tasksForDate(selectedDate).sort((a, b) => {
+    // Show todo tasks first, done tasks at the bottom
+    if (a.status === "done" && b.status !== "done") return 1;
+    if (a.status !== "done" && b.status === "done") return -1;
+    return a.priority - b.priority;
+  });
+  const doneCount = selectedTasks.filter((t) => t.status === "done").length;
   const unplannedTasks = tasks.filter(
     (t) => !t.plannedDate && t.status === "todo"
   );
-  const totalMinutes = selectedTasks.reduce(
-    (sum, t) => sum + t.estimatedMinutes,
-    0
-  );
+  const totalMinutes = selectedTasks
+    .filter((t) => t.status === "todo")
+    .reduce((sum, t) => sum + t.estimatedMinutes, 0);
 
-  const handlePlanDate = (taskId: string) => {
-    setPlanningTaskId(taskId);
-    setPlanDialogOpen(true);
-  };
-
-  const assignDate = async (date: string) => {
-    if (!planningTaskId) return;
-    await planTask(planningTaskId, date);
-    setPlanDialogOpen(false);
-    setPlanningTaskId(null);
+  const handlePlanDate = async (taskId: string) => {
+    await planTask(taskId, selectedDate);
     fetchTasks();
   };
 
@@ -162,10 +150,10 @@ export default function PlanPage() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-sm">
-            Planned ({selectedTasks.length})
+            Planned ({doneCount}/{selectedTasks.length} done)
           </h3>
           <span className="text-xs text-muted-foreground">
-            ~{Math.round(totalMinutes / 60 * 10) / 10}h estimated
+            ~{formatMinutes(totalMinutes)} remaining
           </span>
         </div>
         {selectedTasks.length === 0 ? (
@@ -219,36 +207,6 @@ export default function PlanPage() {
         )}
       </div>
 
-      {/* Date picker dialog */}
-      <Dialog open={planDialogOpen} onOpenChange={setPlanDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Pick a day</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto">
-            {getRemainingUsableDays().map((d) => {
-              const count = tasksForDate(d).length;
-              return (
-                <Button
-                  key={d}
-                  variant={d === selectedDate ? "default" : "outline"}
-                  className="text-xs h-auto py-2"
-                  onClick={() => assignDate(d)}
-                >
-                  <div className="text-center">
-                    <div>{formatDateShort(d)}</div>
-                    {count > 0 && (
-                      <div className="text-[10px] opacity-75">
-                        {count} tasks
-                      </div>
-                    )}
-                  </div>
-                </Button>
-              );
-            })}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

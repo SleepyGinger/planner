@@ -26,6 +26,7 @@ import { Trash2, Pencil, Clock, CalendarPlus } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/dates";
+import { formatMinutes } from "@/lib/format";
 
 const priorityColors: Record<number, string> = {
   1: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
@@ -127,7 +128,7 @@ export function TaskCard({ task, onUpdate, onPlanDate, compact }: TaskCardProps)
           <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {task.estimatedMinutes}m
+              {formatMinutes(task.estimatedMinutes)}
             </span>
             {task.plannedDate && (
               <span className="text-primary font-medium">
