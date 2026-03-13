@@ -1,24 +1,18 @@
 export type TaskStatus = "todo" | "done";
 
 export type TaskCategory =
-  | "errands"
-  | "projects"
-  | "health/fitness"
-  | "learning"
-  | "fun/experiences"
-  | "social"
-  | "home"
-  | "admin";
+  | "errand"
+  | "project"
+  | "wellness"
+  | "fun"
+  | "learning";
 
 export const CATEGORIES: TaskCategory[] = [
-  "errands",
-  "projects",
-  "health/fitness",
+  "errand",
+  "project",
+  "wellness",
+  "fun",
   "learning",
-  "fun/experiences",
-  "social",
-  "home",
-  "admin",
 ];
 
 export interface Task {
@@ -36,7 +30,9 @@ export interface Task {
   createdAt: string;
   completedAt: string | null;
   sortOrder?: number;
+  plannedSortOrder?: number;
   tags?: string[];
+  notes?: string;
 }
 
 export interface Dump {

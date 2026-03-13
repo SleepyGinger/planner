@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
     const message = await client.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [
         {
           role: "user",
@@ -24,10 +24,10 @@ For each task, provide:
 - title: short, actionable title
 - emoji: a single emoji that best represents this specific task (be creative and specific, not generic)
 - description: brief description (1 sentence)
-- category: one of ${CATEGORIES.join(", ")}
-- priority: 1 (high), 2 (medium), or 3 (low)
+- category: one of ${CATEGORIES.join(", ")} — errand (chores, admin, errands), project (building, creating), wellness (health, fitness, self-care), fun (social, experiences, entertainment), learning (reading, courses, skills)
+- priority: 1 (must do), 2 (should do), or 3 (could do)
 - estimatedMinutes: one of these values only: 15 (quick task), 120 (quarter day), 240 (half day), or 480 (full day). Pick the closest fit.
-- tags: array of short tags for grouping (e.g. location like "SF", "home", or context like "outdoor", "with kids", "car"). Keep tags lowercase, 1-2 words max. Only include relevant tags, can be empty array.
+- tags: array of LOCATIONS where this task happens (e.g. "home", "gym", "downtown", "park", "online"). Keep tags lowercase, 1-2 words max. Only include relevant locations, can be empty array.
 
 Return ONLY valid JSON — an array of task objects. No markdown, no explanation.
 

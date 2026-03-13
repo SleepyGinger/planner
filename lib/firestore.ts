@@ -11,7 +11,20 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { getFirebaseDb } from "./firebase";
-import { Task, Dump, ParsedTask } from "./types";
+import { Task, Dump, ParsedTask, CATEGORIES, TaskCategory } from "./types";
+
+/** Strip unexpected fields and replace undefined with safe defaults so Firestore never rejects the write. */
+function sanitizeParsedTask(t: ParsedTask): ParsedTask {
+  return {
+    title: t.title || "Untitled",
+    emoji: t.emoji || "\ud83d\udccc",
+    description: t.description || "",
+    category: CATEGORIES.includes(t.category as TaskCategory) ? t.category : "errand",
+    priority: ([1, 2, 3] as const).includes(t.priority) ? t.priority : 2,
+    estimatedMinutes: typeof t.estimatedMinutes === "number" ? t.estimatedMinutes : 120,
+    tags: Array.isArray(t.tags) ? t.tags.filter((tag): tag is string => typeof tag === "string") : [],
+  };
+}
 
 function tasksCol() {
   return collection(getFirebaseDb(), "tasks");
@@ -48,7 +61,7 @@ export async function createDumpWithTasks(
   for (const t of tasks) {
     const ref = doc(collection(db, "tasks"));
     batch.set(ref, {
-      ...t,
+      ...sanitizeParsedTask(t),
       status: "todo",
       plannedDate: null,
       dumpId: dumpRef.id,
@@ -81,7 +94,7 @@ export async function createTask(
   dumpId: string | null
 ): Promise<string> {
   const ref = await addDoc(tasksCol(), {
-    ...parsed,
+    ...sanitizeParsedTask(parsed),
     status: "todo",
     plannedDate: null,
     dumpId,
@@ -105,7 +118,7 @@ export async function createTasks(
   for (const t of tasks) {
     const ref = doc(collection(db, "tasks"));
     batch.set(ref, {
-      ...t,
+      ...sanitizeParsedTask(t),
       status: "todo",
       plannedDate: null,
       dumpId,
@@ -170,6 +183,17 @@ export async function reorderTasks(
   const batch = writeBatch(db);
   orderedIds.forEach((id, index) => {
     batch.update(doc(db, "tasks", id), { sortOrder: index });
+  });
+  await batch.commit();
+}
+
+export async function reorderPlannedTasks(
+  orderedIds: string[]
+): Promise<void> {
+  const db = getFirebaseDb();
+  const batch = writeBatch(db);
+  orderedIds.forEach((id, index) => {
+    batch.update(doc(db, "tasks", id), { plannedSortOrder: index });
   });
   await batch.commit();
 }

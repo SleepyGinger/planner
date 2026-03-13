@@ -28,7 +28,7 @@ const DURATION_OPTIONS = [
   { label: "Full day", value: 480 },
 ];
 
-export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void }) {
+export function BrainDumpInput({ onTasksCreated, existingTags }: { onTasksCreated?: () => void; existingTags?: string[] }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,24 +40,25 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
   // Quick add state
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickTitle, setQuickTitle] = useState("");
-  const [quickCategory, setQuickCategory] = useState<TaskCategory>("errands");
+  const [quickCategory, setQuickCategory] = useState<TaskCategory>("errand");
   const [quickPriority, setQuickPriority] = useState<1 | 2 | 3>(2);
   const [quickMinutes, setQuickMinutes] = useState(120);
   const [quickTags, setQuickTags] = useState("");
 
-  // Existing tags from user's tasks
-  const [existingTasks, setExistingTasks] = useState<Task[]>([]);
+  // Existing tags from user's tasks (use prop if provided, otherwise fetch)
+  const [fetchedTasks, setFetchedTasks] = useState<Task[]>([]);
   useEffect(() => {
-    if (user) {
-      getTasks(user.uid).then(setExistingTasks);
+    if (!existingTags && user) {
+      getTasks(user.uid).then(setFetchedTasks);
     }
-  }, [user]);
+  }, [user, existingTags]);
 
   const allExistingTags = useMemo(() => {
+    if (existingTags) return existingTags;
     const tagSet = new Set<string>();
-    existingTasks.forEach((t) => t.tags?.forEach((tag) => tagSet.add(tag)));
+    fetchedTasks.forEach((t) => t.tags?.forEach((tag) => tagSet.add(tag)));
     return Array.from(tagSet).sort();
-  }, [existingTasks]);
+  }, [existingTags, fetchedTasks]);
 
   const handleOrganize = async () => {
     if (!text.trim()) return;
@@ -81,16 +82,29 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
     }
   };
 
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   const handleSaveAll = async () => {
-    if (!user || parsedTasks.length === 0) return;
+    if (!user) {
+      setError("You must be signed in to save tasks. Please refresh and sign in again.");
+      return;
+    }
+    if (parsedTasks.length === 0) return;
     setSaving(true);
+    setError("");
+    setSaveSuccess(false);
     try {
       await createDumpWithTasks(user.uid, text, parsedTasks);
+      setSaveSuccess(true);
       setText("");
       setParsedTasks([]);
       onTasksCreated?.();
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (e) {
-      setError("Failed to save tasks");
+      console.error("Save failed:", e);
+      setError(
+        `Failed to save tasks: ${e instanceof Error ? e.message : "Unknown error"}. Your tasks are still listed below — try again.`
+      );
     } finally {
       setSaving(false);
     }
@@ -156,14 +170,14 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-5xl mx-auto">
       <div className="space-y-2">
         <Textarea
           placeholder="Brain dump everything you want to do during your time off... errands, projects, things to learn, places to go, people to see..."
           value={text}
           onChange={(e) => setText(e.target.value)}
-          rows={6}
-          className="resize-none text-base"
+          rows={10}
+          className="resize-none text-xl lg:text-2xl leading-relaxed"
         />
         <div className="flex gap-2">
           <Button
@@ -202,35 +216,49 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
             onChange={(e) => setQuickTitle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
           />
-          <div className="grid grid-cols-2 gap-2">
-            <Select
-              value={quickCategory}
-              onValueChange={(v) => setQuickCategory(v as TaskCategory)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={String(quickPriority)}
-              onValueChange={(v) => setQuickPriority(Number(v) as 1 | 2 | 3)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">High</SelectItem>
-                <SelectItem value="2">Medium</SelectItem>
-                <SelectItem value="3">Low</SelectItem>
-              </SelectContent>
-            </Select>
+
+          {/* Category pills */}
+          <div className="flex gap-2">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c}
+                onClick={() => setQuickCategory(c)}
+                className={cn(
+                  "flex-1 text-xs py-2 rounded-lg border font-medium transition-colors capitalize",
+                  quickCategory === c
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card hover:bg-accent border-border"
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+
+          {/* Priority pills */}
+          <div className="flex gap-2">
+            {([
+              { value: 1 as const, label: "Must" },
+              { value: 2 as const, label: "Should" },
+              { value: 3 as const, label: "Could" },
+            ]).map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setQuickPriority(opt.value)}
+                className={cn(
+                  "flex-1 text-xs py-2 rounded-lg border font-medium transition-colors",
+                  quickPriority === opt.value
+                    ? opt.value === 1
+                      ? "bg-red-600 text-white border-red-600"
+                      : opt.value === 2
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted text-foreground border-muted"
+                    : "bg-card hover:bg-accent border-border"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
 
           {/* Duration pills */}
@@ -251,7 +279,7 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
             ))}
           </div>
 
-          {/* Tags */}
+          {/* Locations */}
           {allExistingTags.length > 0 && (
             <div className="flex gap-1.5 flex-wrap">
               {allExistingTags.map((tag) => {
@@ -288,7 +316,7 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
             </div>
           )}
           <Input
-            placeholder="New tags (comma separated)"
+            placeholder="Locations (e.g. home, gym, downtown)"
             value={quickTags}
             onChange={(e) => setQuickTags(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
@@ -299,6 +327,12 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
             Add Task
           </Button>
         </Card>
+      )}
+
+      {saveSuccess && (
+        <div className="text-sm text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 rounded-md p-3">
+          Tasks saved successfully!
+        </div>
       )}
 
       {parsedTasks.length > 0 && (
@@ -316,11 +350,16 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
               Save All
             </Button>
           </div>
+          {error && (
+            <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
+              {error}
+            </div>
+          )}
           <div className="space-y-2">
             {parsedTasks.map((task, i) => (
               <Card key={i} className="p-3">
                 {editingIndex === i ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex gap-2">
                       <Input
                         value={task.emoji}
@@ -339,36 +378,66 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
                       onChange={(e) => updateParsedTask(i, { description: e.target.value })}
                       placeholder="Description"
                     />
-                    <div className="grid grid-cols-3 gap-2">
-                      <Select
-                        value={task.category}
-                        onValueChange={(v) => updateParsedTask(i, { category: v as TaskCategory })}
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {CATEGORIES.map((c) => (
-                            <SelectItem key={c} value={c}>{c}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        value={String(task.priority)}
-                        onValueChange={(v) => updateParsedTask(i, { priority: Number(v) as 1 | 2 | 3 })}
-                      >
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">High</SelectItem>
-                          <SelectItem value="2">Medium</SelectItem>
-                          <SelectItem value="3">Low</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        type="number"
-                        value={task.estimatedMinutes}
-                        onChange={(e) => updateParsedTask(i, { estimatedMinutes: Number(e.target.value) })}
-                      />
+                    {/* Category pills */}
+                    <div className="flex gap-2">
+                      {CATEGORIES.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => updateParsedTask(i, { category: c })}
+                          className={cn(
+                            "flex-1 text-xs py-2 rounded-lg border font-medium transition-colors capitalize",
+                            task.category === c
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card hover:bg-accent border-border"
+                          )}
+                        >
+                          {c}
+                        </button>
+                      ))}
                     </div>
-                    {/* Tags editing */}
+                    {/* Priority pills */}
+                    <div className="flex gap-2">
+                      {([
+                        { value: 1 as const, label: "Must" },
+                        { value: 2 as const, label: "Should" },
+                        { value: 3 as const, label: "Could" },
+                      ]).map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => updateParsedTask(i, { priority: opt.value })}
+                          className={cn(
+                            "flex-1 text-xs py-2 rounded-lg border font-medium transition-colors",
+                            task.priority === opt.value
+                              ? opt.value === 1
+                                ? "bg-red-600 text-white border-red-600"
+                                : opt.value === 2
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-muted text-foreground border-muted"
+                              : "bg-card hover:bg-accent border-border"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Duration pills */}
+                    <div className="flex gap-2">
+                      {DURATION_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => updateParsedTask(i, { estimatedMinutes: opt.value })}
+                          className={cn(
+                            "flex-1 text-xs py-2 rounded-lg border font-medium transition-colors",
+                            task.estimatedMinutes === opt.value
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card hover:bg-accent border-border"
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Location editing */}
                     <Input
                       value={(task.tags || []).join(", ")}
                       onChange={(e) =>
@@ -379,7 +448,7 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
                             .filter(Boolean),
                         })
                       }
-                      placeholder="Tags (comma separated)"
+                      placeholder="Locations (e.g. home, gym, downtown)"
                     />
                     <Button size="sm" onClick={() => setEditingIndex(null)}>
                       Done
@@ -393,6 +462,16 @@ export function BrainDumpInput({ onTasksCreated }: { onTasksCreated?: () => void
                         <span className="font-bold text-sm">{task.title}</span>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           <Badge variant="outline" className="text-xs">{task.category}</Badge>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-xs",
+                              task.priority === 1 && "border-red-400 text-red-600 dark:text-red-400",
+                              task.priority === 3 && "text-muted-foreground"
+                            )}
+                          >
+                            {task.priority === 1 ? "Must" : task.priority === 2 ? "Should" : "Could"}
+                          </Badge>
                           <span className="text-xs text-muted-foreground">{formatMinutes(task.estimatedMinutes)}</span>
                           {(task.tags || []).map((tag) => (
                             <Badge key={tag} variant="secondary" className="text-[10px]">

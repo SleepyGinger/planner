@@ -9,6 +9,7 @@ import {
   deleteTask,
   updateTask,
   reorderTasks,
+  reorderPlannedTasks,
   planTask,
   unplanTask,
 } from "@/lib/firestore";
@@ -16,13 +17,6 @@ import { Task, CATEGORIES, TaskCategory } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   Loader2,
@@ -31,17 +25,20 @@ import {
   Sparkles,
   Undo2,
   GripVertical,
-  Tag,
+  MapPin,
   Plus,
   X,
   ChevronLeft,
   ChevronRight,
   CalendarPlus,
   CalendarMinus,
+  StickyNote,
 } from "lucide-react";
+import { BrainDumpInput } from "@/components/brain-dump-input";
 import { formatMinutes } from "@/lib/format";
 import {
   getUsableDays,
+  getDaysRemaining,
   formatDate,
   formatDateShort,
   getTodayISO,
@@ -108,9 +105,9 @@ function TagEditor({
           setOpen(true);
         }}
         className="rounded-full bg-muted p-1 hover:bg-accent transition-colors"
-        title="Edit tags"
+        title="Edit location"
       >
-        <Tag className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-muted-foreground" />
+        <MapPin className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-muted-foreground" />
       </button>
     );
   }
@@ -144,7 +141,7 @@ function TagEditor({
             }
             if (e.key === "Escape") setOpen(false);
           }}
-          placeholder="Add tag..."
+          placeholder="Add location..."
           className="h-6 text-xs px-1.5"
           autoFocus
         />
@@ -286,6 +283,86 @@ function TitleEditor({
   );
 }
 
+function NotesEditor({
+  taskId,
+  notes,
+  onUpdate,
+}: {
+  taskId: string;
+  notes: string;
+  onUpdate: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(notes);
+
+  if (!open) {
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setValue(notes);
+          setOpen(true);
+        }}
+        className={cn(
+          "w-full mt-1.5",
+          notes
+            ? "text-[11px] lg:text-xs text-muted-foreground text-left line-clamp-2 hover:text-foreground transition-colors cursor-pointer"
+            : "rounded-full bg-muted p-1 w-auto hover:bg-accent transition-colors"
+        )}
+        title={notes ? "Click to edit notes" : "Add notes"}
+      >
+        {notes ? (
+          notes
+        ) : (
+          <StickyNote className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-muted-foreground" />
+        )}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className="absolute inset-0 z-10 rounded-xl bg-card border p-2 flex flex-col gap-1.5"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setValue(notes);
+            setOpen(false);
+          }
+        }}
+        placeholder="Jot down notes..."
+        className="flex-1 text-xs bg-transparent resize-none outline-none min-h-[60px]"
+        autoFocus
+      />
+      <div className="flex gap-1 justify-end">
+        <button
+          onClick={() => {
+            setValue(notes);
+            setOpen(false);
+          }}
+          className="text-xs px-2 py-1 rounded text-muted-foreground hover:text-foreground"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={async () => {
+            await updateTask(taskId, { notes: value.trim() });
+            setOpen(false);
+            onUpdate();
+          }}
+          className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SortableTaskCard({
   task,
   allTags,
@@ -336,7 +413,7 @@ function SortableTaskCard({
       <div
         {...attributes}
         {...listeners}
-        className="absolute top-1 left-1 lg:top-2 lg:left-2 cursor-grab active:cursor-grabbing touch-none p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+        className="absolute top-1 left-1 lg:top-2 lg:left-2 cursor-grab active:cursor-grabbing touch-none p-1.5 lg:p-1 rounded opacity-60 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
       >
         <GripVertical className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
       </div>
@@ -362,6 +439,9 @@ function SortableTaskCard({
         </div>
       )}
 
+      {/* Notes */}
+      <NotesEditor taskId={task.id} notes={task.notes || ""} onUpdate={onUpdate} />
+
       {/* Planned date */}
       {task.plannedDate && (
         <span className="text-[10px] lg:text-xs text-primary font-medium mt-1">
@@ -370,8 +450,8 @@ function SortableTaskCard({
         </span>
       )}
 
-      {/* Hover actions */}
-      <div className="absolute top-1 right-1 lg:top-2 lg:right-2 hidden group-hover:flex gap-0.5 lg:gap-1">
+      {/* Actions — always visible on mobile, hover on desktop */}
+      <div className="absolute top-1 right-1 lg:top-2 lg:right-2 flex lg:hidden lg:group-hover:flex gap-0.5 lg:gap-1">
         <TagEditor
           taskId={task.id}
           tags={tags}
@@ -415,6 +495,93 @@ function SortableTaskCard({
 }
 
 const DAY_PLAN_ZONE_ID = "day-plan-zone";
+const PLAN_PREFIX = "plan-";
+
+function SortablePlannedCard({
+  task,
+  onComplete,
+  onUnplan,
+  onUpdate,
+}: {
+  task: Task;
+  onComplete: (id: string) => void;
+  onUnplan: (id: string) => void;
+  onUpdate: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: `${PLAN_PREFIX}${task.id}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group/planned relative rounded-xl border bg-background p-3 lg:p-4 flex flex-col items-center text-center transition-shadow hover:shadow-md",
+        isDragging && "opacity-30"
+      )}
+    >
+      {/* Drag handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-1 left-1 lg:top-2 lg:left-2 cursor-grab active:cursor-grabbing touch-none p-1.5 lg:p-1 rounded opacity-60 lg:opacity-0 lg:group-hover/planned:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+      >
+        <GripVertical className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+      </div>
+      <span className="text-3xl lg:text-5xl 2xl:text-6xl leading-none mb-1.5 lg:mb-2">
+        {task.emoji || "\ud83d\udccc"}
+      </span>
+      <span className="font-bold text-sm lg:text-base 2xl:text-lg leading-tight line-clamp-2">
+        {task.title}
+      </span>
+      <span className="text-[11px] lg:text-xs 2xl:text-sm text-muted-foreground mt-1">
+        {formatMinutes(task.estimatedMinutes)}
+      </span>
+      {(task.tags?.length ?? 0) > 0 && (
+        <div className="flex gap-1 flex-wrap justify-center mt-1.5">
+          {task.tags!.map((tag) => (
+            <Badge
+              key={tag}
+              variant="outline"
+              className="text-[10px] lg:text-xs px-1.5 py-0"
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
+      {/* Notes */}
+      <NotesEditor taskId={task.id} notes={task.notes || ""} onUpdate={onUpdate} />
+      <div className="absolute top-1 right-1 lg:top-2 lg:right-2 flex lg:hidden lg:group-hover/planned:flex gap-0.5 lg:gap-1">
+        <button
+          onClick={() => onComplete(task.id)}
+          className="rounded-full bg-green-100 dark:bg-green-900 p-1 lg:p-1.5 hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+          title="Mark done"
+        >
+          <Check className="h-3 w-3 lg:h-4 lg:w-4 text-green-700 dark:text-green-300" />
+        </button>
+        <button
+          onClick={() => onUnplan(task.id)}
+          className="rounded-full bg-red-100 dark:bg-red-900 p-1 lg:p-1.5 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+          title="Remove from day"
+        >
+          <X className="h-3 w-3 lg:h-4 lg:w-4 text-red-700 dark:text-red-300" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function DayPlanZone({
   tasks,
@@ -422,12 +589,14 @@ function DayPlanZone({
   isDragging,
   onUnplan,
   onComplete,
+  onUpdate,
 }: {
   tasks: Task[];
   selectedDate: string;
   isDragging: boolean;
   onUnplan: (id: string) => void;
   onComplete: (id: string) => void;
+  onUpdate: () => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: DAY_PLAN_ZONE_ID });
   const totalMinutes = tasks.reduce((sum, t) => sum + t.estimatedMinutes, 0);
@@ -460,38 +629,22 @@ function DayPlanZone({
           {isDragging ? "Drop here to plan for this day" : "No tasks planned — drag tasks here or use the calendar icon"}
         </p>
       ) : (
-        <div className="flex gap-2 flex-wrap">
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              className="group/planned flex items-center gap-1.5 rounded-lg border bg-background px-2 py-1.5 text-sm"
-            >
-              <span className="text-base leading-none">{task.emoji || "\ud83d\udccc"}</span>
-              <span className="font-medium text-xs leading-tight max-w-[120px] truncate">
-                {task.title}
-              </span>
-              <span className="text-[10px] text-muted-foreground">
-                {formatMinutes(task.estimatedMinutes)}
-              </span>
-              <div className="hidden group-hover/planned:flex gap-0.5 ml-0.5">
-                <button
-                  onClick={() => onComplete(task.id)}
-                  className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
-                  title="Mark done"
-                >
-                  <Check className="h-3 w-3" />
-                </button>
-                <button
-                  onClick={() => onUnplan(task.id)}
-                  className="text-muted-foreground hover:text-destructive"
-                  title="Remove from day"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <SortableContext
+          items={tasks.map((t) => `${PLAN_PREFIX}${t.id}`)}
+          strategy={rectSortingStrategy}
+        >
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 min-[2200px]:grid-cols-10 gap-2 lg:gap-3">
+            {tasks.map((task) => (
+              <SortablePlannedCard
+                key={task.id}
+                task={task}
+                onComplete={onComplete}
+                onUnplan={onUnplan}
+                onUpdate={onUpdate}
+              />
+            ))}
+          </div>
+        </SortableContext>
       )}
     </div>
   );
@@ -543,7 +696,9 @@ export default function TasksPage() {
   const [filterTag, setFilterTag] = useState<string>("all");
   const [backfilling, setBackfilling] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [justCompleted, setJustCompleted] = useState<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const planSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Calendar strip state
   const [selectedDate, setSelectedDate] = useState(getTodayISO());
@@ -593,7 +748,12 @@ export default function TasksPage() {
     Math.max(0, currentDayIndex - 3),
     Math.min(usableDays.length, currentDayIndex + 4)
   );
-  const plannedForSelected = tasksForDate(selectedDate);
+  const plannedForSelected = tasksForDate(selectedDate).sort((a, b) => {
+    const aOrder = a.plannedSortOrder ?? Infinity;
+    const bOrder = b.plannedSortOrder ?? Infinity;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.priority - b.priority;
+  });
   const plannedMinutes = plannedForSelected.reduce(
     (sum, t) => sum + t.estimatedMinutes,
     0
@@ -601,6 +761,7 @@ export default function TasksPage() {
 
   const todoTasks = tasks
     .filter((t) => t.status === "todo")
+    .filter((t) => !t.plannedDate)
     .filter((t) => filterCategory === "all" || t.category === filterCategory)
     .filter((t) => filterTag === "all" || t.tags?.includes(filterTag))
     .sort((a, b) => {
@@ -610,7 +771,8 @@ export default function TasksPage() {
       return a.priority - b.priority;
     });
 
-  const todoCount = tasks.filter((t) => t.status === "todo").length;
+  const todoCount = tasks.filter((t) => t.status === "todo" && !t.plannedDate).length;
+  const scheduledCount = tasks.filter((t) => t.status === "todo" && t.plannedDate).length;
   const doneCount = tasks.filter((t) => t.status === "done").length;
   const needsEmojis = tasks.some((t) => t.status === "todo" && !t.emoji);
 
@@ -619,13 +781,20 @@ export default function TasksPage() {
     .filter((t) => filterCategory === "all" || t.category === filterCategory)
     .filter((t) => filterTag === "all" || t.tags?.includes(filterTag));
 
-  const activeTask = activeId
-    ? todoTasks.find((t) => t.id === activeId)
-    : null;
+  const activeTask = useMemo(() => {
+    if (!activeId) return null;
+    const realId = activeId.startsWith(PLAN_PREFIX)
+      ? activeId.slice(PLAN_PREFIX.length)
+      : activeId;
+    return tasks.find((t) => t.id === realId) || null;
+  }, [activeId, tasks]);
 
   const handleComplete = async (taskId: string) => {
+    setJustCompleted(taskId);
     await completeTask(taskId);
-    fetchTasks();
+    await fetchTasks();
+    // Keep the celebration visible for a moment
+    setTimeout(() => setJustCompleted(null), 2000);
   };
 
   const handleUncomplete = async (taskId: string) => {
@@ -663,15 +832,29 @@ export default function TasksPage() {
     }
   };
 
-  // Custom collision detection: prefer the plan zone when pointer is within it,
-  // otherwise fall back to closestCenter for sortable reordering
+  // Custom collision detection:
+  // - Dragging from plan zone → only collide with other plan items
+  // - Dragging from main grid → prefer plan zone droppable, otherwise main grid items
   const collisionDetection: CollisionDetection = (args) => {
+    const activeIdStr = String(args.active.id);
+    const isFromPlan = activeIdStr.startsWith(PLAN_PREFIX);
+
+    if (isFromPlan) {
+      const collisions = closestCenter(args);
+      return collisions.filter((c) => String(c.id).startsWith(PLAN_PREFIX));
+    }
+
     const pointerCollisions = pointerWithin(args);
     const planZoneHit = pointerCollisions.find(
       (c) => c.id === DAY_PLAN_ZONE_ID
     );
     if (planZoneHit) return [planZoneHit];
-    return closestCenter(args);
+
+    const collisions = closestCenter(args);
+    return collisions.filter(
+      (c) =>
+        !String(c.id).startsWith(PLAN_PREFIX) && c.id !== DAY_PLAN_ZONE_ID
+    );
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -683,12 +866,50 @@ export default function TasksPage() {
     const { active, over } = event;
     if (!over) return;
 
+    const activeIdStr = String(active.id);
+    const overIdStr = String(over.id);
+    const isFromPlan = activeIdStr.startsWith(PLAN_PREFIX);
+
+    // Reorder within the day plan zone
+    if (isFromPlan) {
+      if (!overIdStr.startsWith(PLAN_PREFIX)) return;
+      if (active.id === over.id) return;
+
+      const activeRealId = activeIdStr.slice(PLAN_PREFIX.length);
+      const overRealId = overIdStr.slice(PLAN_PREFIX.length);
+
+      const oldIndex = plannedForSelected.findIndex(
+        (t) => t.id === activeRealId
+      );
+      const newIndex = plannedForSelected.findIndex(
+        (t) => t.id === overRealId
+      );
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      const reordered = arrayMove(plannedForSelected, oldIndex, newIndex);
+
+      const updatedTasks = tasks.map((t) => {
+        const idx = reordered.findIndex((r) => r.id === t.id);
+        if (idx !== -1) return { ...t, plannedSortOrder: idx };
+        return t;
+      });
+      setTasks(updatedTasks);
+
+      if (planSaveTimeoutRef.current)
+        clearTimeout(planSaveTimeoutRef.current);
+      planSaveTimeoutRef.current = setTimeout(() => {
+        reorderPlannedTasks(reordered.map((t) => t.id));
+      }, 500);
+      return;
+    }
+
     // Dropped on the plan zone → plan for selected date
     if (over.id === DAY_PLAN_ZONE_ID) {
       handlePlan(active.id as string);
       return;
     }
 
+    // Reorder within the main grid
     if (active.id === over.id) return;
 
     const oldIndex = todoTasks.findIndex((t) => t.id === active.id);
@@ -718,13 +939,15 @@ export default function TasksPage() {
     );
   }
 
+  const daysLeft = getDaysRemaining();
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl lg:text-3xl font-bold">Tasks</h2>
           <p className="text-muted-foreground text-sm lg:text-base">
-            {todoCount} to do, {doneCount} done
+            {todoCount} to do{scheduledCount > 0 && `, ${scheduledCount} scheduled`}, {doneCount} done &middot; {daysLeft} days left
           </p>
         </div>
         {needsEmojis && (
@@ -743,6 +966,9 @@ export default function TasksPage() {
           </Button>
         )}
       </div>
+
+      {/* Brain dump input */}
+      <BrainDumpInput onTasksCreated={fetchTasks} existingTags={allTags} />
 
       {fetchError && (
         <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
@@ -818,58 +1044,73 @@ export default function TasksPage() {
           isDragging={!!activeId}
           onUnplan={handleUnplan}
           onComplete={handleComplete}
+          onUpdate={fetchTasks}
         />
 
-        <div className="flex gap-2 flex-wrap">
-          <Select
-            value={filterCategory}
-            onValueChange={(v) => setFilterCategory(v as TaskCategory | "all")}
+        {/* Category filter pills */}
+        <div className="flex gap-1.5 items-center flex-wrap">
+          <button
+            onClick={() => setFilterCategory("all")}
+            className={cn(
+              "text-xs px-2.5 py-1 rounded-full border transition-colors",
+              filterCategory === "all"
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-card hover:bg-accent border-border"
+            )}
           >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All categories</SelectItem>
-              {CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            All
+          </button>
+          {CATEGORIES.map((c) => (
+            <button
+              key={c}
+              onClick={() =>
+                setFilterCategory(filterCategory === c ? "all" : c)
+              }
+              className={cn(
+                "text-xs px-2.5 py-1 rounded-full border transition-colors capitalize",
+                filterCategory === c
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card hover:bg-accent border-border"
+              )}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
 
-          {allTags.length > 0 && (
-            <div className="flex gap-1.5 items-center flex-wrap">
+        {/* Location filter pills */}
+        {allTags.length > 0 && (
+          <div className="flex gap-1.5 items-center flex-wrap">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wide mr-0.5">Location</span>
+            <button
+              onClick={() => setFilterTag("all")}
+              className={cn(
+                "text-xs px-2.5 py-1 rounded-full border transition-colors",
+                filterTag === "all"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card hover:bg-accent border-border"
+              )}
+            >
+              All
+            </button>
+            {allTags.map((tag) => (
               <button
-                onClick={() => setFilterTag("all")}
+                key={tag}
+                onClick={() =>
+                  setFilterTag(filterTag === tag ? "all" : tag)
+                }
                 className={cn(
                   "text-xs px-2.5 py-1 rounded-full border transition-colors",
-                  filterTag === "all"
+                  filterTag === tag
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-card hover:bg-accent border-border"
                 )}
               >
-                All
+                {tag}
               </button>
-              {allTags.map((tag) => (
-                <button
-                  key={tag}
-                  onClick={() =>
-                    setFilterTag(filterTag === tag ? "all" : tag)
-                  }
-                  className={cn(
-                    "text-xs px-2.5 py-1 rounded-full border transition-colors",
-                    filterTag === tag
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card hover:bg-accent border-border"
-                  )}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        )}
 
         {todoTasks.length === 0 && doneTasks.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
@@ -916,16 +1157,36 @@ export default function TasksPage() {
                 Done ({doneTasks.length})
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 min-[2200px]:grid-cols-10 gap-2 lg:gap-3">
-                {doneTasks.map((task) => (
+                {doneTasks.map((task) => {
+                  const isJustDone = justCompleted === task.id;
+                  return (
                   <div
                     key={task.id}
-                    className="group relative rounded-xl border border-muted bg-card p-3 lg:p-4 flex flex-col items-center text-center opacity-50"
+                    className={cn(
+                      "group relative rounded-xl border bg-card p-3 lg:p-4 flex flex-col items-center text-center transition-all duration-700",
+                      isJustDone
+                        ? "scale-105 ring-2 ring-green-400 border-green-400 shadow-lg shadow-green-200/50 dark:shadow-green-900/50"
+                        : "border-muted opacity-50"
+                    )}
                   >
-                    <span className="text-3xl lg:text-5xl 2xl:text-6xl leading-none mb-1.5 lg:mb-2 grayscale">
+                    {isJustDone && (
+                      <div className="absolute -top-2 -right-2 text-2xl animate-bounce">
+                        🎉
+                      </div>
+                    )}
+                    <span className={cn(
+                      "text-3xl lg:text-5xl 2xl:text-6xl leading-none mb-1.5 lg:mb-2 transition-all duration-700",
+                      !isJustDone && "grayscale"
+                    )}>
                       {task.emoji || "\ud83d\udccc"}
                     </span>
-                    <span className="font-bold text-sm lg:text-base 2xl:text-lg leading-tight line-clamp-2 line-through text-muted-foreground">
-                      {task.title}
+                    <span className={cn(
+                      "font-bold text-sm lg:text-base 2xl:text-lg leading-tight line-clamp-2 transition-all duration-700",
+                      isJustDone
+                        ? "text-green-700 dark:text-green-400"
+                        : "line-through text-muted-foreground"
+                    )}>
+                      {isJustDone ? `${task.title} ✓` : task.title}
                     </span>
                     <span className="text-[11px] lg:text-xs 2xl:text-sm text-muted-foreground mt-1">
                       {formatMinutes(task.estimatedMinutes)}
@@ -944,7 +1205,7 @@ export default function TasksPage() {
                       </div>
                     )}
 
-                    <div className="absolute top-1 right-1 lg:top-2 lg:right-2 hidden group-hover:flex gap-0.5 lg:gap-1">
+                    <div className="absolute top-1 right-1 lg:top-2 lg:right-2 flex lg:hidden lg:group-hover:flex gap-0.5 lg:gap-1">
                       <button
                         onClick={() => handleUncomplete(task.id)}
                         className="rounded-full bg-blue-100 dark:bg-blue-900 p-1 lg:p-1.5 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
@@ -961,7 +1222,8 @@ export default function TasksPage() {
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

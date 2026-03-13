@@ -41,14 +41,11 @@ const priorityLabels: Record<number, string> = {
 };
 
 const categoryEmoji: Record<TaskCategory, string> = {
-  errands: "🏃",
-  projects: "🔨",
-  "health/fitness": "💪",
+  errand: "🏃",
+  project: "🔨",
+  wellness: "💆",
+  fun: "🎉",
   learning: "📚",
-  "fun/experiences": "🎉",
-  social: "👥",
-  home: "🏠",
-  admin: "📋",
 };
 
 interface TaskCardProps {
