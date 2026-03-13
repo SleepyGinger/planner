@@ -173,7 +173,7 @@ export function BrainDumpInput({ onTasksCreated, existingTags }: { onTasksCreate
     <div className="space-y-4 max-w-5xl mx-auto">
       <div className="space-y-2">
         <Textarea
-          placeholder="Brain dump everything you want to do during your time off... errands, projects, things to learn, places to go, people to see..."
+          placeholder="..."
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={10}
@@ -316,7 +316,7 @@ export function BrainDumpInput({ onTasksCreated, existingTags }: { onTasksCreate
             </div>
           )}
           <Input
-            placeholder="Locations (e.g. home, gym, downtown)"
+            placeholder="..."
             value={quickTags}
             onChange={(e) => setQuickTags(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
@@ -448,7 +448,7 @@ export function BrainDumpInput({ onTasksCreated, existingTags }: { onTasksCreate
                             .filter(Boolean),
                         })
                       }
-                      placeholder="Locations (e.g. home, gym, downtown)"
+                      placeholder="..."
                     />
                     <Button size="sm" onClick={() => setEditingIndex(null)}>
                       Done

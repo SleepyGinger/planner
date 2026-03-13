@@ -626,7 +626,7 @@ function DayPlanZone({
       </div>
       {tasks.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-2">
-          {isDragging ? "Drop here to plan for this day" : "No tasks planned — drag tasks here or use the calendar icon"}
+          {isDragging ? "Drop here" : "..."}
         </p>
       ) : (
         <SortableContext
@@ -947,7 +947,7 @@ export default function TasksPage() {
         <div>
           <h2 className="text-2xl lg:text-3xl font-bold">Tasks</h2>
           <p className="text-muted-foreground text-sm lg:text-base">
-            {todoCount} to do{scheduledCount > 0 && `, ${scheduledCount} scheduled`}, {doneCount} done &middot; {daysLeft} days left
+            {todoCount} to do{scheduledCount > 0 && `, ${scheduledCount} scheduled`}, {doneCount} done
           </p>
         </div>
         {needsEmojis && (
@@ -1115,14 +1115,14 @@ export default function TasksPage() {
         {todoTasks.length === 0 && doneTasks.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             {tasks.length === 0
-              ? "No tasks yet. Go dump your brain!"
-              : "No tasks match your filters."}
+              ? "..."
+              : "..."}
           </div>
         ) : (
           <>
             {todoTasks.length === 0 && doneTasks.length === 0 && (
               <div className="text-center py-6 text-muted-foreground text-sm">
-                All tasks done! Nice work.
+                ...
               </div>
             )}
 

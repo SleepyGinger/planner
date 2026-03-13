@@ -16,17 +16,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="flex items-center justify-between h-14 px-4 lg:px-8">
             <h1 className="font-bold text-lg">Time Off Planner</h1>
             <div className="flex items-center gap-2">
-              {user?.photoURL && (
-                <img
-                  src={user.photoURL}
-                  alt=""
-                  className="h-7 w-7 rounded-full"
-                  referrerPolicy="no-referrer"
-                />
-              )}
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut}>
-                <LogOut className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </header>
