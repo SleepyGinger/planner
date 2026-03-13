@@ -48,7 +48,8 @@ export async function createDump(userId: string, rawText: string): Promise<strin
 export async function createDumpWithTasks(
   userId: string,
   rawText: string,
-  tasks: ParsedTask[]
+  tasks: ParsedTask[],
+  startSortOrder: number = 0
 ): Promise<{ dumpId: string; taskIds: string[] }> {
   const db = getFirebaseDb();
   const batch = writeBatch(db);
@@ -58,16 +59,17 @@ export async function createDumpWithTasks(
   batch.set(dumpRef, { rawText, userId, createdAt: now });
 
   const taskIds: string[] = [];
-  for (const t of tasks) {
+  for (let i = 0; i < tasks.length; i++) {
     const ref = doc(collection(db, "tasks"));
     batch.set(ref, {
-      ...sanitizeParsedTask(t),
+      ...sanitizeParsedTask(tasks[i]),
       status: "todo",
       plannedDate: null,
       dumpId: dumpRef.id,
       userId,
       createdAt: now,
       completedAt: null,
+      sortOrder: startSortOrder + i,
     });
     taskIds.push(ref.id);
   }
@@ -108,23 +110,25 @@ export async function createTask(
 export async function createTasks(
   userId: string,
   tasks: ParsedTask[],
-  dumpId: string | null
+  dumpId: string | null,
+  startSortOrder: number = 0
 ): Promise<string[]> {
   const db = getFirebaseDb();
   const batch = writeBatch(db);
   const now = new Date().toISOString();
   const ids: string[] = [];
 
-  for (const t of tasks) {
+  for (let i = 0; i < tasks.length; i++) {
     const ref = doc(collection(db, "tasks"));
     batch.set(ref, {
-      ...sanitizeParsedTask(t),
+      ...sanitizeParsedTask(tasks[i]),
       status: "todo",
       plannedDate: null,
       dumpId,
       userId,
       createdAt: now,
       completedAt: null,
+      sortOrder: startSortOrder + i,
     });
     ids.push(ref.id);
   }

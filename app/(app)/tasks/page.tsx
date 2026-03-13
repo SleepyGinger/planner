@@ -694,6 +694,7 @@ export default function TasksPage() {
     "all"
   );
   const [filterTag, setFilterTag] = useState<string>("all");
+  const [sortMode, setSortMode] = useState<"custom" | "priority" | "category" | "duration">("custom");
   const [backfilling, setBackfilling] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [justCompleted, setJustCompleted] = useState<string | null>(null);
@@ -767,9 +768,31 @@ export default function TasksPage() {
     .sort((a, b) => {
       const aOrder = a.sortOrder ?? Infinity;
       const bOrder = b.sortOrder ?? Infinity;
+      if (sortMode === "priority") {
+        if (a.priority !== b.priority) return a.priority - b.priority;
+        return aOrder - bOrder;
+      }
+      if (sortMode === "category") {
+        const cmp = a.category.localeCompare(b.category);
+        if (cmp !== 0) return cmp;
+        return aOrder - bOrder;
+      }
+      if (sortMode === "duration") {
+        if (a.estimatedMinutes !== b.estimatedMinutes) return a.estimatedMinutes - b.estimatedMinutes;
+        return aOrder - bOrder;
+      }
+      // custom
       if (aOrder !== bOrder) return aOrder - bOrder;
       return a.priority - b.priority;
     });
+
+  const maxSortOrder = useMemo(() => {
+    let max = 0;
+    tasks.forEach((t) => {
+      if (typeof t.sortOrder === "number" && t.sortOrder > max) max = t.sortOrder;
+    });
+    return max;
+  }, [tasks]);
 
   const todoCount = tasks.filter((t) => t.status === "todo" && !t.plannedDate).length;
   const scheduledCount = tasks.filter((t) => t.status === "todo" && t.plannedDate).length;
@@ -909,7 +932,8 @@ export default function TasksPage() {
       return;
     }
 
-    // Reorder within the main grid
+    // Reorder within the main grid (only in custom sort mode)
+    if (sortMode !== "custom") return;
     if (active.id === over.id) return;
 
     const oldIndex = todoTasks.findIndex((t) => t.id === active.id);
@@ -968,7 +992,7 @@ export default function TasksPage() {
       </div>
 
       {/* Brain dump input */}
-      <BrainDumpInput onTasksCreated={fetchTasks} existingTags={allTags} />
+      <BrainDumpInput onTasksCreated={fetchTasks} existingTags={allTags} maxSortOrder={maxSortOrder} />
 
       {fetchError && (
         <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
@@ -1074,6 +1098,30 @@ export default function TasksPage() {
               )}
             >
               {c}
+            </button>
+          ))}
+        </div>
+
+        {/* Sort mode pills */}
+        <div className="flex gap-1.5 items-center flex-wrap">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wide mr-0.5">Sort</span>
+          {([
+            { value: "custom" as const, label: "Custom" },
+            { value: "priority" as const, label: "Priority" },
+            { value: "category" as const, label: "Category" },
+            { value: "duration" as const, label: "Duration" },
+          ]).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setSortMode(opt.value)}
+              className={cn(
+                "text-xs px-2.5 py-1 rounded-full border transition-colors",
+                sortMode === opt.value
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card hover:bg-accent border-border"
+              )}
+            >
+              {opt.label}
             </button>
           ))}
         </div>

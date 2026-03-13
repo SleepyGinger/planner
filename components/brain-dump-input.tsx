@@ -28,7 +28,7 @@ const DURATION_OPTIONS = [
   { label: "Full day", value: 480 },
 ];
 
-export function BrainDumpInput({ onTasksCreated, existingTags }: { onTasksCreated?: () => void; existingTags?: string[] }) {
+export function BrainDumpInput({ onTasksCreated, existingTags, maxSortOrder = 0 }: { onTasksCreated?: () => void; existingTags?: string[]; maxSortOrder?: number }) {
   const { user } = useAuth();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -94,7 +94,7 @@ export function BrainDumpInput({ onTasksCreated, existingTags }: { onTasksCreate
     setError("");
     setSaveSuccess(false);
     try {
-      await createDumpWithTasks(user.uid, text, parsedTasks);
+      await createDumpWithTasks(user.uid, text, parsedTasks, maxSortOrder + 1);
       setSaveSuccess(true);
       setText("");
       setParsedTasks([]);
@@ -132,7 +132,8 @@ export function BrainDumpInput({ onTasksCreated, existingTags }: { onTasksCreate
             tags,
           },
         ],
-        null
+        null,
+        maxSortOrder + 1
       );
       setQuickTitle("");
       setQuickTags("");
