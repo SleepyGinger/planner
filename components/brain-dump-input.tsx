@@ -179,26 +179,26 @@ export function BrainDumpInput({ onTasksCreated, existingTags, maxSortOrder = 0 
           rows={16}
           className="resize-none text-xl lg:text-2xl leading-relaxed"
         />
-        <div className="flex gap-2">
+        <div className="flex gap-4 justify-center">
           <Button
             onClick={handleOrganize}
             disabled={!text.trim() || loading}
             size="lg"
-            className="h-16 w-16 rounded-2xl shadow-md hover:shadow-lg transition-all"
+            className="h-20 w-20 rounded-2xl shadow-md hover:shadow-lg transition-all"
           >
             {loading ? (
-              <Loader2 className="h-7 w-7 animate-spin" />
+              <Loader2 className="h-9 w-9 animate-spin" />
             ) : (
-              <Sparkles className="h-7 w-7" />
+              <Sparkles className="h-9 w-9" />
             )}
           </Button>
           <Button
             variant="outline"
             size="lg"
             onClick={() => setQuickAddOpen(!quickAddOpen)}
-            className="h-16 w-16 rounded-2xl"
+            className="h-20 w-20 rounded-2xl"
           >
-            <Plus className="h-7 w-7" />
+            <Plus className="h-9 w-9" />
           </Button>
         </div>
       </div>
