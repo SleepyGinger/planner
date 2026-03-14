@@ -184,21 +184,21 @@ export function BrainDumpInput({ onTasksCreated, existingTags, maxSortOrder = 0 
             onClick={handleOrganize}
             disabled={!text.trim() || loading}
             size="lg"
-            className="flex-1 h-14 text-lg rounded-xl shadow-md hover:shadow-lg transition-all"
+            className="h-16 w-16 rounded-2xl shadow-md hover:shadow-lg transition-all"
           >
             {loading ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <Loader2 className="h-7 w-7 animate-spin" />
             ) : (
-              <Sparkles className="h-6 w-6" />
+              <Sparkles className="h-7 w-7" />
             )}
           </Button>
           <Button
             variant="outline"
             size="lg"
             onClick={() => setQuickAddOpen(!quickAddOpen)}
-            className="h-14 w-14 rounded-xl"
+            className="h-16 w-16 rounded-2xl"
           >
-            <Plus className="h-6 w-6" />
+            <Plus className="h-7 w-7" />
           </Button>
         </div>
       </div>
