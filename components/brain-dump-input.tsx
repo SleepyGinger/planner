@@ -176,7 +176,7 @@ export function BrainDumpInput({ onTasksCreated, existingTags, maxSortOrder = 0 
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
-          rows={10}
+          rows={16}
           className="resize-none text-xl lg:text-2xl leading-relaxed"
         />
         <div className="flex gap-2">
