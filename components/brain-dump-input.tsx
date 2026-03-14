@@ -174,6 +174,7 @@ export function BrainDumpInput({ onTasksCreated, existingTags, maxSortOrder = 0 
     <div className="space-y-4 max-w-2xl mx-auto">
       <div className="space-y-2">
         <Textarea
+          autoFocus
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={20}
@@ -187,9 +188,9 @@ export function BrainDumpInput({ onTasksCreated, existingTags, maxSortOrder = 0 
             className="h-20 flex-1 rounded-2xl shadow-md hover:shadow-lg transition-all bg-violet-600 hover:bg-violet-700 text-white border-0"
           >
             {loading ? (
-              <Loader2 className="h-12 w-12 animate-spin" />
+              <Loader2 className="h-14 w-14 animate-spin" />
             ) : (
-              <Sparkles className="h-12 w-12" strokeWidth={2.5} />
+              <Sparkles className="h-14 w-14" strokeWidth={2.5} />
             )}
           </Button>
           <Button
@@ -197,7 +198,7 @@ export function BrainDumpInput({ onTasksCreated, existingTags, maxSortOrder = 0 
             onClick={() => setQuickAddOpen(!quickAddOpen)}
             className="h-20 flex-1 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white border-0"
           >
-            <Plus className="h-12 w-12" strokeWidth={2.5} />
+            <Plus className="h-14 w-14" strokeWidth={2.5} />
           </Button>
         </div>
       </div>
