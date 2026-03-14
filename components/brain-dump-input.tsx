@@ -174,7 +174,6 @@ export function BrainDumpInput({ onTasksCreated, existingTags, maxSortOrder = 0 
     <div className="space-y-4 max-w-5xl mx-auto">
       <div className="space-y-2">
         <Textarea
-          placeholder="..."
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={10}
@@ -184,21 +183,22 @@ export function BrainDumpInput({ onTasksCreated, existingTags, maxSortOrder = 0 
           <Button
             onClick={handleOrganize}
             disabled={!text.trim() || loading}
-            className="flex-1"
+            size="lg"
+            className="flex-1 h-14 text-lg rounded-xl shadow-md hover:shadow-lg transition-all"
           >
             {loading ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-6 w-6 animate-spin" />
             ) : (
-              <Sparkles className="h-4 w-4 mr-2" />
+              <Sparkles className="h-6 w-6" />
             )}
-            {loading ? "Organizing..." : "Organize with AI"}
           </Button>
           <Button
             variant="outline"
+            size="lg"
             onClick={() => setQuickAddOpen(!quickAddOpen)}
+            className="h-14 w-14 rounded-xl"
           >
-            <Plus className="h-4 w-4 mr-1" />
-            Quick Add
+            <Plus className="h-6 w-6" />
           </Button>
         </div>
       </div>
