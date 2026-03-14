@@ -184,7 +184,7 @@ export function BrainDumpInput({ onTasksCreated, existingTags, maxSortOrder = 0 
             onClick={handleOrganize}
             disabled={!text.trim() || loading}
             size="lg"
-            className="h-20 w-20 rounded-2xl shadow-md hover:shadow-lg transition-all"
+            className="h-20 flex-1 rounded-2xl shadow-md hover:shadow-lg transition-all"
           >
             {loading ? (
               <Loader2 className="h-9 w-9 animate-spin" />
@@ -196,7 +196,7 @@ export function BrainDumpInput({ onTasksCreated, existingTags, maxSortOrder = 0 
             variant="outline"
             size="lg"
             onClick={() => setQuickAddOpen(!quickAddOpen)}
-            className="h-20 w-20 rounded-2xl"
+            className="h-20 flex-1 rounded-2xl"
           >
             <Plus className="h-9 w-9" />
           </Button>
