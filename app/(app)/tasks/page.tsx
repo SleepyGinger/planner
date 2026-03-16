@@ -44,6 +44,7 @@ import {
   getTodayISO,
   isToday,
 } from "@/lib/dates";
+import { parseISO, isWeekend as isWeekendDate } from "date-fns";
 import {
   DndContext,
   closestCenter,
@@ -104,10 +105,10 @@ function TagEditor({
           e.stopPropagation();
           setOpen(true);
         }}
-        className="rounded-full bg-muted p-1 hover:bg-accent transition-colors"
+        className="rounded-full bg-muted p-2 hover:bg-accent transition-colors"
         title="Edit location"
       >
-        <MapPin className="h-3 w-3 lg:h-3.5 lg:w-3.5 text-muted-foreground" />
+        <MapPin className="h-5 w-5 lg:h-6 lg:w-6 text-muted-foreground" />
       </button>
     );
   }
@@ -404,7 +405,7 @@ function SortableTaskCard({
       style={style}
       className={cn(
         "group relative rounded-xl border bg-card p-3 lg:p-4 flex flex-col items-center text-center transition-shadow hover:shadow-md",
-        task.priority === 1 && "border-red-300 dark:border-red-800",
+        task.priority === 1 && "border-2 border-red-400 dark:border-red-700",
         task.priority === 3 && "border-muted",
         isDragging && "opacity-30"
       )}
@@ -420,10 +421,6 @@ function SortableTaskCard({
 
       <EmojiEditor taskId={task.id} emoji={task.emoji || "\ud83d\udccc"} onUpdate={onUpdate} />
       <TitleEditor taskId={task.id} title={task.title} onUpdate={onUpdate} />
-      <span className="text-[11px] lg:text-xs 2xl:text-sm text-muted-foreground mt-1">
-        {formatMinutes(task.estimatedMinutes)}
-      </span>
-
       {/* Tags */}
       {tags.length > 0 && (
         <div className="flex gap-1 flex-wrap justify-center mt-1.5">
@@ -442,54 +439,49 @@ function SortableTaskCard({
       {/* Notes */}
       <NotesEditor taskId={task.id} notes={task.notes || ""} onUpdate={onUpdate} />
 
-      {/* Planned date */}
-      {task.plannedDate && (
-        <span className="text-[10px] lg:text-xs text-primary font-medium mt-1">
-          {formatDateShort(task.plannedDate)}
-          {isToday(task.plannedDate) && " (Today)"}
-        </span>
-      )}
 
-      {/* Actions — always visible on mobile, hover on desktop */}
-      <div className="absolute top-1 right-1 lg:top-2 lg:right-2 flex lg:hidden lg:group-hover:flex gap-0.5 lg:gap-1">
+      {/* Actions — pinned to bottom of card */}
+      <div className="flex justify-around mt-auto pt-2 w-full">
+        {task.plannedDate === selectedDate ? (
+          <button
+            onClick={() => onUnplan(task.id)}
+            className="rounded-full bg-orange-100 dark:bg-orange-900 p-2 hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
+            title="Unplan from this day"
+          >
+            <CalendarMinus className="h-5 w-5 lg:h-6 lg:w-6 text-orange-700 dark:text-orange-300" />
+          </button>
+        ) : (
+          <button
+            onClick={() => onPlan(task.id)}
+            className="rounded-full bg-blue-100 dark:bg-blue-900 p-2 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+            title={`Plan for ${formatDateShort(selectedDate)}`}
+          >
+            <CalendarPlus className="h-5 w-5 lg:h-6 lg:w-6 text-blue-700 dark:text-blue-300" />
+          </button>
+        )}
         <TagEditor
           taskId={task.id}
           tags={tags}
           allTags={allTags}
           onUpdate={onUpdate}
         />
-        {task.plannedDate === selectedDate ? (
-          <button
-            onClick={() => onUnplan(task.id)}
-            className="rounded-full bg-orange-100 dark:bg-orange-900 p-1 lg:p-1.5 hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
-            title="Unplan from this day"
-          >
-            <CalendarMinus className="h-3 w-3 lg:h-4 lg:w-4 text-orange-700 dark:text-orange-300" />
-          </button>
-        ) : (
-          <button
-            onClick={() => onPlan(task.id)}
-            className="rounded-full bg-blue-100 dark:bg-blue-900 p-1 lg:p-1.5 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
-            title={`Plan for ${formatDateShort(selectedDate)}`}
-          >
-            <CalendarPlus className="h-3 w-3 lg:h-4 lg:w-4 text-blue-700 dark:text-blue-300" />
-          </button>
-        )}
         <button
           onClick={() => onComplete(task.id)}
-          className="rounded-full bg-green-100 dark:bg-green-900 p-1 lg:p-1.5 hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+          className="rounded-full bg-green-100 dark:bg-green-900 p-2 hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
           title="Mark done"
         >
-          <Check className="h-3 w-3 lg:h-4 lg:w-4 text-green-700 dark:text-green-300" />
-        </button>
-        <button
-          onClick={() => onDelete(task.id)}
-          className="rounded-full bg-red-100 dark:bg-red-900 p-1 lg:p-1.5 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
-          title="Delete"
-        >
-          <Trash2 className="h-3 w-3 lg:h-4 lg:w-4 text-red-700 dark:text-red-300" />
+          <Check className="h-5 w-5 lg:h-6 lg:w-6 text-green-700 dark:text-green-300" />
         </button>
       </div>
+
+      {/* Delete — top right corner */}
+      <button
+        onClick={() => onDelete(task.id)}
+        className="absolute top-1 right-1 lg:top-2 lg:right-2 rounded-full bg-red-100 dark:bg-red-900 p-1 hover:bg-red-200 dark:hover:bg-red-800 transition-colors opacity-60 lg:opacity-0 lg:group-hover:opacity-100"
+        title="Delete"
+      >
+        <Trash2 className="h-3.5 w-3.5 text-red-700 dark:text-red-300" />
+      </button>
     </div>
   );
 }
@@ -500,14 +492,17 @@ const PLAN_PREFIX = "plan-";
 function SortablePlannedCard({
   task,
   onComplete,
+  onUncomplete,
   onUnplan,
   onUpdate,
 }: {
   task: Task;
   onComplete: (id: string) => void;
+  onUncomplete: (id: string) => void;
   onUnplan: (id: string) => void;
   onUpdate: () => void;
 }) {
+  const isDone = task.status === "done";
   const {
     attributes,
     listeners,
@@ -515,7 +510,7 @@ function SortablePlannedCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: `${PLAN_PREFIX}${task.id}` });
+  } = useSortable({ id: `${PLAN_PREFIX}${task.id}`, disabled: isDone });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -528,21 +523,30 @@ function SortablePlannedCard({
       style={style}
       className={cn(
         "group/planned relative rounded-xl border bg-background p-3 lg:p-4 flex flex-col items-center text-center transition-shadow hover:shadow-md",
-        isDragging && "opacity-30"
+        isDragging && "opacity-30",
+        isDone && "opacity-40 border-muted"
       )}
     >
       {/* Drag handle */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute top-1 left-1 lg:top-2 lg:left-2 cursor-grab active:cursor-grabbing touch-none p-1.5 lg:p-1 rounded opacity-60 lg:opacity-0 lg:group-hover/planned:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-      >
-        <GripVertical className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-      </div>
-      <span className="text-3xl lg:text-5xl 2xl:text-6xl leading-none mb-1.5 lg:mb-2">
+      {!isDone && (
+        <div
+          {...attributes}
+          {...listeners}
+          className="absolute top-1 left-1 lg:top-2 lg:left-2 cursor-grab active:cursor-grabbing touch-none p-1.5 lg:p-1 rounded opacity-60 lg:opacity-0 lg:group-hover/planned:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+        >
+          <GripVertical className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
+        </div>
+      )}
+      <span className={cn(
+        "text-3xl lg:text-5xl 2xl:text-6xl leading-none mb-1.5 lg:mb-2",
+        isDone && "grayscale"
+      )}>
         {task.emoji || "\ud83d\udccc"}
       </span>
-      <span className="font-bold text-sm lg:text-base 2xl:text-lg leading-tight line-clamp-2">
+      <span className={cn(
+        "font-bold text-sm lg:text-base 2xl:text-lg leading-tight line-clamp-2",
+        isDone && "line-through text-muted-foreground"
+      )}>
         {task.title}
       </span>
       <span className="text-[11px] lg:text-xs 2xl:text-sm text-muted-foreground mt-1">
@@ -564,20 +568,32 @@ function SortablePlannedCard({
       {/* Notes */}
       <NotesEditor taskId={task.id} notes={task.notes || ""} onUpdate={onUpdate} />
       <div className="absolute top-1 right-1 lg:top-2 lg:right-2 flex lg:hidden lg:group-hover/planned:flex gap-0.5 lg:gap-1">
-        <button
-          onClick={() => onComplete(task.id)}
-          className="rounded-full bg-green-100 dark:bg-green-900 p-1 lg:p-1.5 hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
-          title="Mark done"
-        >
-          <Check className="h-3 w-3 lg:h-4 lg:w-4 text-green-700 dark:text-green-300" />
-        </button>
-        <button
-          onClick={() => onUnplan(task.id)}
-          className="rounded-full bg-red-100 dark:bg-red-900 p-1 lg:p-1.5 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
-          title="Remove from day"
-        >
-          <X className="h-3 w-3 lg:h-4 lg:w-4 text-red-700 dark:text-red-300" />
-        </button>
+        {isDone ? (
+          <button
+            onClick={() => onUncomplete(task.id)}
+            className="rounded-full bg-blue-100 dark:bg-blue-900 p-1 lg:p-1.5 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+            title="Undo"
+          >
+            <Undo2 className="h-3 w-3 lg:h-4 lg:w-4 text-blue-700 dark:text-blue-300" />
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={() => onComplete(task.id)}
+              className="rounded-full bg-green-100 dark:bg-green-900 p-1 lg:p-1.5 hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+              title="Mark done"
+            >
+              <Check className="h-3 w-3 lg:h-4 lg:w-4 text-green-700 dark:text-green-300" />
+            </button>
+            <button
+              onClick={() => onUnplan(task.id)}
+              className="rounded-full bg-red-100 dark:bg-red-900 p-1 lg:p-1.5 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+              title="Remove from day"
+            >
+              <X className="h-3 w-3 lg:h-4 lg:w-4 text-red-700 dark:text-red-300" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -589,6 +605,7 @@ function DayPlanZone({
   isDragging,
   onUnplan,
   onComplete,
+  onUncomplete,
   onUpdate,
 }: {
   tasks: Task[];
@@ -596,10 +613,13 @@ function DayPlanZone({
   isDragging: boolean;
   onUnplan: (id: string) => void;
   onComplete: (id: string) => void;
+  onUncomplete: (id: string) => void;
   onUpdate: () => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: DAY_PLAN_ZONE_ID });
-  const totalMinutes = tasks.reduce((sum, t) => sum + t.estimatedMinutes, 0);
+  const todoTasks = tasks.filter((t) => t.status === "todo");
+  const doneTasks = tasks.filter((t) => t.status === "done");
+  const totalMinutes = todoTasks.reduce((sum, t) => sum + t.estimatedMinutes, 0);
 
   return (
     <div
@@ -620,7 +640,9 @@ function DayPlanZone({
         </h3>
         {tasks.length > 0 && (
           <span className="text-xs text-muted-foreground">
-            {tasks.length} task{tasks.length !== 1 && "s"} &middot; ~{formatMinutes(totalMinutes)}
+            {todoTasks.length > 0 && <>{todoTasks.length} to do &middot; ~{formatMinutes(totalMinutes)}</>}
+            {todoTasks.length > 0 && doneTasks.length > 0 && " &middot; "}
+            {doneTasks.length > 0 && <>{doneTasks.length} done</>}
           </span>
         )}
       </div>
@@ -639,6 +661,7 @@ function DayPlanZone({
                 key={task.id}
                 task={task}
                 onComplete={onComplete}
+                onUncomplete={onUncomplete}
                 onUnplan={onUnplan}
                 onUpdate={onUpdate}
               />
@@ -690,12 +713,14 @@ export default function TasksPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterCategory, setFilterCategory] = useState<TaskCategory | "all">(
+  const [filterCategory] = useState<TaskCategory | "all">(
     "all"
   );
   const [filterTag, setFilterTag] = useState<string>("all");
-  const [sortMode, setSortMode] = useState<"custom" | "priority" | "category" | "duration">("custom");
+  const [filterDuration, setFilterDuration] = useState<"all" | "quick" | "quarter" | "half" | "full">("all");
+  const [sortMode, setSortMode] = useState<"custom" | "priority" | "duration">("custom");
   const [backfilling, setBackfilling] = useState(false);
+  const [addingLocations, setAddingLocations] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [justCompleted, setJustCompleted] = useState<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -743,38 +768,51 @@ export default function TasksPage() {
 
   // Calendar helpers
   const tasksForDate = (date: string) =>
-    tasks.filter((t) => t.plannedDate === date && t.status === "todo");
+    tasks.filter((t) => t.plannedDate === date);
   const currentDayIndex = usableDays.indexOf(selectedDate);
   const visibleDays = usableDays.slice(
     Math.max(0, currentDayIndex - 3),
     Math.min(usableDays.length, currentDayIndex + 4)
   );
   const plannedForSelected = tasksForDate(selectedDate).sort((a, b) => {
+    // Done tasks go to the end
+    if (a.status !== b.status) return a.status === "done" ? 1 : -1;
     const aOrder = a.plannedSortOrder ?? Infinity;
     const bOrder = b.plannedSortOrder ?? Infinity;
     if (aOrder !== bOrder) return aOrder - bOrder;
     return a.priority - b.priority;
   });
-  const plannedMinutes = plannedForSelected.reduce(
-    (sum, t) => sum + t.estimatedMinutes,
-    0
-  );
+  const plannedMinutes = plannedForSelected
+    .filter((t) => t.status === "todo")
+    .reduce((sum, t) => sum + t.estimatedMinutes, 0);
+
+  const today = getTodayISO();
+  const isOverdue = (t: Task) => t.plannedDate !== null && t.plannedDate < today && t.status === "todo";
 
   const todoTasks = tasks
     .filter((t) => t.status === "todo")
-    .filter((t) => !t.plannedDate)
+    .filter((t) => !t.plannedDate || isOverdue(t))
     .filter((t) => filterCategory === "all" || t.category === filterCategory)
-    .filter((t) => filterTag === "all" || t.tags?.includes(filterTag))
+    .filter((t) => filterTag === "all" || (filterTag === "?" ? (!t.tags || t.tags.length === 0) : t.tags?.includes(filterTag)))
+    .filter((t) => {
+      if (filterDuration === "all") return true;
+      const m = t.estimatedMinutes;
+      if (filterDuration === "quick") return m <= 15;
+      if (filterDuration === "quarter") return m > 15 && m <= 120;
+      if (filterDuration === "half") return m > 120 && m <= 240;
+      if (filterDuration === "full") return m > 240;
+      return true;
+    })
     .sort((a, b) => {
+      // Overdue tasks always come first
+      const aOverdue = isOverdue(a);
+      const bOverdue = isOverdue(b);
+      if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+
       const aOrder = a.sortOrder ?? Infinity;
       const bOrder = b.sortOrder ?? Infinity;
       if (sortMode === "priority") {
         if (a.priority !== b.priority) return a.priority - b.priority;
-        return aOrder - bOrder;
-      }
-      if (sortMode === "category") {
-        const cmp = a.category.localeCompare(b.category);
-        if (cmp !== 0) return cmp;
         return aOrder - bOrder;
       }
       if (sortMode === "duration") {
@@ -786,23 +824,33 @@ export default function TasksPage() {
       return a.priority - b.priority;
     });
 
-  const maxSortOrder = useMemo(() => {
-    let max = 0;
+  const minSortOrder = useMemo(() => {
+    let min = 0;
     tasks.forEach((t) => {
-      if (typeof t.sortOrder === "number" && t.sortOrder > max) max = t.sortOrder;
+      if (typeof t.sortOrder === "number" && t.sortOrder < min) min = t.sortOrder;
     });
-    return max;
+    return min;
   }, [tasks]);
 
   const todoCount = tasks.filter((t) => t.status === "todo" && !t.plannedDate).length;
   const scheduledCount = tasks.filter((t) => t.status === "todo" && t.plannedDate).length;
   const doneCount = tasks.filter((t) => t.status === "done").length;
   const needsEmojis = tasks.some((t) => t.status === "todo" && !t.emoji);
+  const needsLocations = tasks.some((t) => !t.tags || t.tags.length === 0);
 
   const doneTasks = tasks
     .filter((t) => t.status === "done")
     .filter((t) => filterCategory === "all" || t.category === filterCategory)
-    .filter((t) => filterTag === "all" || t.tags?.includes(filterTag));
+    .filter((t) => filterTag === "all" || (filterTag === "?" ? (!t.tags || t.tags.length === 0) : t.tags?.includes(filterTag)))
+    .filter((t) => {
+      if (filterDuration === "all") return true;
+      const m = t.estimatedMinutes;
+      if (filterDuration === "quick") return m <= 15;
+      if (filterDuration === "quarter") return m > 15 && m <= 120;
+      if (filterDuration === "half") return m > 120 && m <= 240;
+      if (filterDuration === "full") return m > 240;
+      return true;
+    });
 
   const activeTask = useMemo(() => {
     if (!activeId) return null;
@@ -814,9 +862,14 @@ export default function TasksPage() {
 
   const handleComplete = async (taskId: string) => {
     setJustCompleted(taskId);
+    const task = tasks.find((t) => t.id === taskId);
+    const todayStr = getTodayISO();
+    // Always pin completed tasks to today so they show greyed out in today's planner
+    if (task && task.plannedDate !== todayStr) {
+      await planTask(taskId, todayStr);
+    }
     await completeTask(taskId);
     await fetchTasks();
-    // Keep the celebration visible for a moment
     setTimeout(() => setJustCompleted(null), 2000);
   };
 
@@ -852,6 +905,21 @@ export default function TasksPage() {
       await fetchTasks();
     } finally {
       setBackfilling(false);
+    }
+  };
+
+  const handleAddLocations = async () => {
+    if (!user) return;
+    setAddingLocations(true);
+    try {
+      await fetch("/api/recheck-tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.uid, existingLocations: allTags }),
+      });
+      await fetchTasks();
+    } finally {
+      setAddingLocations(false);
     }
   };
 
@@ -964,6 +1032,14 @@ export default function TasksPage() {
   }
 
   const daysLeft = getDaysRemaining();
+  const totalBusinessDays = getUsableDays().filter((d) => {
+    const date = parseISO(d);
+    return !isWeekendDate(date);
+  }).length;
+  const daysElapsed = totalBusinessDays - daysLeft;
+  const daysPct = totalBusinessDays > 0 ? (daysElapsed / totalBusinessDays) * 100 : 0;
+  const totalTasks = todoCount + scheduledCount + doneCount;
+  const tasksPct = totalTasks > 0 ? (doneCount / totalTasks) * 100 : 0;
 
   return (
     <div className="space-y-3">
@@ -974,25 +1050,70 @@ export default function TasksPage() {
             {todoCount} to do{scheduledCount > 0 && `, ${scheduledCount} scheduled`}, {doneCount} done
           </p>
         </div>
-        {needsEmojis && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleBackfillEmojis}
-            disabled={backfilling}
-          >
-            {backfilling ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4 mr-1" />
-            )}
-            Add Emojis
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {needsLocations && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddLocations}
+              disabled={addingLocations}
+            >
+              {addingLocations ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4 mr-1" />
+              )}
+              Add Locations
+            </Button>
+          )}
+          {needsEmojis && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackfillEmojis}
+              disabled={backfilling}
+            >
+              {backfilling ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4 mr-1" />
+              )}
+              Add Emojis
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bars */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Days</span>
+            <span>{daysElapsed}/{totalBusinessDays} ({daysLeft} left)</span>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-blue-500 rounded-full transition-all"
+              style={{ width: `${daysPct}%` }}
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Tasks</span>
+            <span>{doneCount}/{totalTasks} done</span>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-green-500 rounded-full transition-all"
+              style={{ width: `${tasksPct}%` }}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Brain dump input */}
-      <BrainDumpInput onTasksCreated={fetchTasks} existingTags={allTags} maxSortOrder={maxSortOrder} />
+      <BrainDumpInput onTasksCreated={fetchTasks} existingTags={allTags} minSortOrder={minSortOrder} />
 
       {fetchError && (
         <div className="text-sm text-destructive bg-destructive/10 rounded-md p-3">
@@ -1068,39 +1189,9 @@ export default function TasksPage() {
           isDragging={!!activeId}
           onUnplan={handleUnplan}
           onComplete={handleComplete}
+          onUncomplete={handleUncomplete}
           onUpdate={fetchTasks}
         />
-
-        {/* Category filter pills */}
-        <div className="flex gap-1.5 items-center flex-wrap">
-          <button
-            onClick={() => setFilterCategory("all")}
-            className={cn(
-              "text-xs px-2.5 py-1 rounded-full border transition-colors",
-              filterCategory === "all"
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card hover:bg-accent border-border"
-            )}
-          >
-            All
-          </button>
-          {CATEGORIES.map((c) => (
-            <button
-              key={c}
-              onClick={() =>
-                setFilterCategory(filterCategory === c ? "all" : c)
-              }
-              className={cn(
-                "text-xs px-2.5 py-1 rounded-full border transition-colors capitalize",
-                filterCategory === c
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card hover:bg-accent border-border"
-              )}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
 
         {/* Sort mode pills */}
         <div className="flex gap-1.5 items-center flex-wrap">
@@ -1108,7 +1199,6 @@ export default function TasksPage() {
           {([
             { value: "custom" as const, label: "Custom" },
             { value: "priority" as const, label: "Priority" },
-            { value: "category" as const, label: "Category" },
             { value: "duration" as const, label: "Duration" },
           ]).map((opt) => (
             <button
@@ -1157,8 +1247,46 @@ export default function TasksPage() {
                 {tag}
               </button>
             ))}
+            {needsLocations && (
+              <button
+                onClick={() => setFilterTag(filterTag === "?" ? "all" : "?")}
+                className={cn(
+                  "text-xs px-2.5 py-1 rounded-full border transition-colors",
+                  filterTag === "?"
+                    ? "bg-orange-500 text-white border-orange-500"
+                    : "bg-card hover:bg-accent border-border text-orange-500"
+                )}
+              >
+                ?
+              </button>
+            )}
           </div>
         )}
+
+        {/* Duration filter pills */}
+        <div className="flex gap-1.5 items-center flex-wrap">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wide mr-0.5">Duration</span>
+          {([
+            { value: "all" as const, label: "All" },
+            { value: "quick" as const, label: "Quick" },
+            { value: "quarter" as const, label: "Quarter day" },
+            { value: "half" as const, label: "Half day" },
+            { value: "full" as const, label: "Full day" },
+          ]).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setFilterDuration(filterDuration === opt.value ? "all" : opt.value)}
+              className={cn(
+                "text-xs px-2.5 py-1 rounded-full border transition-colors",
+                filterDuration === opt.value
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card hover:bg-accent border-border"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
 
         {todoTasks.length === 0 && doneTasks.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
