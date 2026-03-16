@@ -1044,11 +1044,11 @@ export default function TasksPage() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-baseline gap-2">
           <h2 className="text-2xl lg:text-3xl font-bold">Tasks</h2>
-          <p className="text-muted-foreground text-sm lg:text-base">
+          <span className="text-muted-foreground text-sm lg:text-base">
             {todoCount} to do{scheduledCount > 0 && `, ${scheduledCount} scheduled`}, {doneCount} done
-          </p>
+          </span>
         </div>
         <div className="flex gap-2">
           {needsLocations && (
@@ -1084,30 +1084,40 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* Progress bars */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-muted-foreground">
+      {/* Progress blocks */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-sm font-medium">
             <span>Days</span>
-            <span>{daysElapsed}/{totalBusinessDays} ({daysLeft} left)</span>
+            <span className="text-muted-foreground">{daysLeft} left</span>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-500 rounded-full transition-all"
-              style={{ width: `${daysPct}%` }}
-            />
+          <div className="flex gap-0.5 flex-wrap">
+            {Array.from({ length: totalBusinessDays }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "h-3 w-3 lg:h-4 lg:w-4 rounded-sm transition-colors",
+                  i < daysElapsed ? "bg-blue-500" : "bg-muted"
+                )}
+              />
+            ))}
           </div>
         </div>
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-muted-foreground">
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-sm font-medium">
             <span>Tasks</span>
-            <span>{doneCount}/{totalTasks} done</span>
+            <span className="text-muted-foreground">{doneCount}/{totalTasks}</span>
           </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-500 rounded-full transition-all"
-              style={{ width: `${tasksPct}%` }}
-            />
+          <div className="flex gap-0.5 flex-wrap">
+            {Array.from({ length: totalTasks }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "h-3 w-3 lg:h-4 lg:w-4 rounded-sm transition-colors",
+                  i < doneCount ? "bg-green-500" : "bg-muted"
+                )}
+              />
+            ))}
           </div>
         </div>
       </div>
