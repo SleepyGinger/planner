@@ -4,7 +4,7 @@ import { ParsedTask, CATEGORIES } from "@/lib/types";
 
 const client = new Anthropic();
 
-async function callWithRetry(params: Anthropic.MessageCreateParams, retries = 3): Promise<Anthropic.Message> {
+async function callWithRetry(params: Anthropic.MessageCreateParamsNonStreaming, retries = 3): Promise<Anthropic.Message> {
   for (let i = 0; i < retries; i++) {
     try {
       return await client.messages.create(params);
