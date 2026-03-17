@@ -11,6 +11,7 @@ import {
 } from "date-fns";
 import { TIME_OFF_START, TIME_OFF_END, BLOCKED_DATES } from "./types";
 
+/** All calendar days (including weekends), excluding blocked dates. Used for the planner strip. */
 export function getUsableDays(): string[] {
   const start = parseISO(TIME_OFF_START);
   const end = parseISO(TIME_OFF_END);
@@ -18,7 +19,6 @@ export function getUsableDays(): string[] {
 
   return allDays
     .filter((d) => {
-      if (isWeekend(d)) return false;
       const iso = format(d, "yyyy-MM-dd");
       if (BLOCKED_DATES.includes(iso)) return false;
       return true;
@@ -26,9 +26,15 @@ export function getUsableDays(): string[] {
     .map((d) => format(d, "yyyy-MM-dd"));
 }
 
+/** Business days remaining (weekdays only, excluding blocked). Used for the countdown. */
 export function getRemainingUsableDays(): string[] {
   const today = format(new Date(), "yyyy-MM-dd");
-  return getUsableDays().filter((d) => d >= today);
+  return getUsableDays().filter((d) => {
+    if (d < today) return false;
+    const date = parseISO(d);
+    if (isWeekend(date)) return false;
+    return true;
+  });
 }
 
 export function getDaysRemaining(): number {

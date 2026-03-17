@@ -23,6 +23,8 @@ function sanitizeParsedTask(t: ParsedTask): ParsedTask {
     priority: ([1, 2, 3] as const).includes(t.priority) ? t.priority : 2,
     estimatedMinutes: typeof t.estimatedMinutes === "number" ? t.estimatedMinutes : 120,
     tags: Array.isArray(t.tags) ? t.tags.filter((tag): tag is string => typeof tag === "string") : [],
+    notes: typeof t.notes === "string" ? t.notes : "",
+    plannedDate: typeof t.plannedDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.plannedDate) ? t.plannedDate : null,
   };
 }
 
@@ -60,11 +62,12 @@ export async function createDumpWithTasks(
 
   const taskIds: string[] = [];
   for (let i = 0; i < tasks.length; i++) {
+    const sanitized = sanitizeParsedTask(tasks[i]);
     const ref = doc(collection(db, "tasks"));
     batch.set(ref, {
-      ...sanitizeParsedTask(tasks[i]),
+      ...sanitized,
       status: "todo",
-      plannedDate: null,
+      plannedDate: sanitized.plannedDate || null,
       dumpId: dumpRef.id,
       userId,
       createdAt: now,
@@ -119,11 +122,12 @@ export async function createTasks(
   const ids: string[] = [];
 
   for (let i = 0; i < tasks.length; i++) {
+    const sanitized = sanitizeParsedTask(tasks[i]);
     const ref = doc(collection(db, "tasks"));
     batch.set(ref, {
-      ...sanitizeParsedTask(tasks[i]),
+      ...sanitized,
       status: "todo",
-      plannedDate: null,
+      plannedDate: sanitized.plannedDate || null,
       dumpId,
       userId,
       createdAt: now,

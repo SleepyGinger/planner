@@ -65,7 +65,7 @@ export function BrainDumpInput({ onTasksCreated, existingTags, minSortOrder = 0 
       const res = await fetch("/api/organize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, existingLocations: allExistingTags }),
+        body: JSON.stringify({ text, existingLocations: allExistingTags, todayISO: new Date().toISOString().split("T")[0] }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -142,6 +142,12 @@ export function BrainDumpInput({ onTasksCreated, existingTags, minSortOrder = 0 
           autoFocus
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.metaKey) {
+              e.preventDefault();
+              handleOrganizeAndSave();
+            }
+          }}
           className="resize-none text-4xl lg:text-5xl leading-relaxed min-h-[30vh]"
         />
         <div className="flex gap-4 justify-center max-w-md mx-auto">

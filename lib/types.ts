@@ -50,6 +50,8 @@ export interface ParsedTask {
   priority: 1 | 2 | 3;
   estimatedMinutes: number;
   tags?: string[];
+  notes?: string;
+  plannedDate?: string | null; // ISO date YYYY-MM-DD if date mentioned in brain dump
 }
 
 // The 28 business days off: March 11 - April 17, 2026

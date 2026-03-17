@@ -35,6 +35,7 @@ import {
   StickyNote,
 } from "lucide-react";
 import { BrainDumpInput } from "@/components/brain-dump-input";
+import { Celebration } from "@/components/celebration";
 import { formatMinutes } from "@/lib/format";
 import {
   getUsableDays,
@@ -383,6 +384,7 @@ function SortableTaskCard({
   onPlan: (id: string) => void;
   onUnplan: (id: string) => void;
 }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const {
     attributes,
     listeners,
@@ -474,14 +476,33 @@ function SortableTaskCard({
         </button>
       </div>
 
-      {/* Delete — top right corner */}
-      <button
-        onClick={() => onDelete(task.id)}
-        className="absolute top-1 right-1 lg:top-2 lg:right-2 rounded-full bg-red-100 dark:bg-red-900 p-1 hover:bg-red-200 dark:hover:bg-red-800 transition-colors opacity-60 lg:opacity-0 lg:group-hover:opacity-100"
-        title="Delete"
-      >
-        <Trash2 className="h-3.5 w-3.5 text-red-700 dark:text-red-300" />
-      </button>
+      {/* Delete — top right with confirmation */}
+      {confirmingDelete ? (
+        <div className="absolute top-1 right-1 lg:top-2 lg:right-2 flex gap-0.5 lg:gap-1 animate-in fade-in duration-150">
+          <button
+            onClick={() => onDelete(task.id)}
+            className="rounded-full bg-red-500 dark:bg-red-600 p-1 hover:bg-red-600 dark:hover:bg-red-700 transition-colors"
+            title="Confirm delete"
+          >
+            <Check className="h-3.5 w-3.5 text-white" />
+          </button>
+          <button
+            onClick={() => setConfirmingDelete(false)}
+            className="rounded-full bg-muted p-1 hover:bg-accent transition-colors"
+            title="Cancel"
+          >
+            <X className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setConfirmingDelete(true)}
+          className="absolute top-1 right-1 lg:top-2 lg:right-2 rounded-full bg-red-100 dark:bg-red-900 p-1 hover:bg-red-200 dark:hover:bg-red-800 transition-colors opacity-60 lg:opacity-0 lg:group-hover:opacity-100"
+          title="Delete"
+        >
+          <Trash2 className="h-3.5 w-3.5 text-red-700 dark:text-red-300" />
+        </button>
+      )}
     </div>
   );
 }
@@ -494,15 +515,18 @@ function SortablePlannedCard({
   onComplete,
   onUncomplete,
   onUnplan,
+  onDelete,
   onUpdate,
 }: {
   task: Task;
   onComplete: (id: string) => void;
   onUncomplete: (id: string) => void;
   onUnplan: (id: string) => void;
+  onDelete: (id: string) => void;
   onUpdate: () => void;
 }) {
   const isDone = task.status === "done";
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const {
     attributes,
     listeners,
@@ -567,34 +591,64 @@ function SortablePlannedCard({
       )}
       {/* Notes */}
       <NotesEditor taskId={task.id} notes={task.notes || ""} onUpdate={onUpdate} />
-      <div className="absolute top-1 right-1 lg:top-2 lg:right-2 flex lg:hidden lg:group-hover/planned:flex gap-0.5 lg:gap-1">
+
+      {/* Actions — pinned to bottom */}
+      <div className="flex justify-around mt-auto pt-2 w-full">
         {isDone ? (
           <button
             onClick={() => onUncomplete(task.id)}
-            className="rounded-full bg-blue-100 dark:bg-blue-900 p-1 lg:p-1.5 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+            className="rounded-full bg-blue-100 dark:bg-blue-900 p-2 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
             title="Undo"
           >
-            <Undo2 className="h-3 w-3 lg:h-4 lg:w-4 text-blue-700 dark:text-blue-300" />
+            <Undo2 className="h-5 w-5 lg:h-6 lg:w-6 text-blue-700 dark:text-blue-300" />
           </button>
         ) : (
           <>
             <button
-              onClick={() => onComplete(task.id)}
-              className="rounded-full bg-green-100 dark:bg-green-900 p-1 lg:p-1.5 hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
-              title="Mark done"
-            >
-              <Check className="h-3 w-3 lg:h-4 lg:w-4 text-green-700 dark:text-green-300" />
-            </button>
-            <button
               onClick={() => onUnplan(task.id)}
-              className="rounded-full bg-red-100 dark:bg-red-900 p-1 lg:p-1.5 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+              className="rounded-full bg-orange-100 dark:bg-orange-900 p-2 hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors"
               title="Remove from day"
             >
-              <X className="h-3 w-3 lg:h-4 lg:w-4 text-red-700 dark:text-red-300" />
+              <CalendarMinus className="h-5 w-5 lg:h-6 lg:w-6 text-orange-700 dark:text-orange-300" />
+            </button>
+            <button
+              onClick={() => onComplete(task.id)}
+              className="rounded-full bg-green-100 dark:bg-green-900 p-2 hover:bg-green-200 dark:hover:bg-green-800 transition-colors"
+              title="Mark done"
+            >
+              <Check className="h-5 w-5 lg:h-6 lg:w-6 text-green-700 dark:text-green-300" />
             </button>
           </>
         )}
       </div>
+
+      {/* Delete — top right with confirmation */}
+      {confirmingDelete ? (
+        <div className="absolute top-1 right-1 lg:top-2 lg:right-2 flex gap-0.5 lg:gap-1 animate-in fade-in duration-150">
+          <button
+            onClick={() => onDelete(task.id)}
+            className="rounded-full bg-red-500 dark:bg-red-600 p-1 hover:bg-red-600 dark:hover:bg-red-700 transition-colors"
+            title="Confirm delete"
+          >
+            <Check className="h-3.5 w-3.5 text-white" />
+          </button>
+          <button
+            onClick={() => setConfirmingDelete(false)}
+            className="rounded-full bg-muted p-1 hover:bg-accent transition-colors"
+            title="Cancel"
+          >
+            <X className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setConfirmingDelete(true)}
+          className="absolute top-1 right-1 lg:top-2 lg:right-2 rounded-full bg-red-100 dark:bg-red-900 p-1 hover:bg-red-200 dark:hover:bg-red-800 transition-colors opacity-60 lg:opacity-0 lg:group-hover/planned:opacity-100"
+          title="Delete"
+        >
+          <Trash2 className="h-3.5 w-3.5 text-red-700 dark:text-red-300" />
+        </button>
+      )}
     </div>
   );
 }
@@ -606,6 +660,7 @@ function DayPlanZone({
   onUnplan,
   onComplete,
   onUncomplete,
+  onDelete,
   onUpdate,
 }: {
   tasks: Task[];
@@ -614,6 +669,7 @@ function DayPlanZone({
   onUnplan: (id: string) => void;
   onComplete: (id: string) => void;
   onUncomplete: (id: string) => void;
+  onDelete: (id: string) => void;
   onUpdate: () => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: DAY_PLAN_ZONE_ID });
@@ -663,11 +719,107 @@ function DayPlanZone({
                 onComplete={onComplete}
                 onUncomplete={onUncomplete}
                 onUnplan={onUnplan}
+                onDelete={onDelete}
                 onUpdate={onUpdate}
               />
             ))}
           </div>
         </SortableContext>
+      )}
+    </div>
+  );
+}
+
+function DoneTaskCard({
+  task,
+  isJustDone,
+  onUncomplete,
+  onDelete,
+}: {
+  task: Task;
+  isJustDone: boolean;
+  onUncomplete: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  return (
+    <div
+      className={cn(
+        "group relative rounded-xl border bg-card p-3 lg:p-4 flex flex-col items-center text-center transition-all duration-700",
+        isJustDone
+          ? "scale-105 ring-2 ring-green-400 border-green-400 shadow-lg shadow-green-200/50 dark:shadow-green-900/50"
+          : "border-muted opacity-50"
+      )}
+    >
+      <span className={cn(
+        "text-3xl lg:text-5xl 2xl:text-6xl leading-none mb-1.5 lg:mb-2 transition-all duration-700",
+        !isJustDone && "grayscale"
+      )}>
+        {task.emoji || "\ud83d\udccc"}
+      </span>
+      <span className={cn(
+        "font-bold text-sm lg:text-base 2xl:text-lg leading-tight line-clamp-2 transition-all duration-700",
+        isJustDone
+          ? "text-green-700 dark:text-green-400"
+          : "line-through text-muted-foreground"
+      )}>
+        {isJustDone ? `${task.title} ✓` : task.title}
+      </span>
+      <span className="text-[11px] lg:text-xs 2xl:text-sm text-muted-foreground mt-1">
+        {formatMinutes(task.estimatedMinutes)}
+      </span>
+      {(task.tags?.length ?? 0) > 0 && (
+        <div className="flex gap-1 flex-wrap justify-center mt-1.5">
+          {task.tags!.map((tag) => (
+            <Badge
+              key={tag}
+              variant="outline"
+              className="text-[10px] lg:text-xs px-1.5 py-0"
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      {/* Actions — bottom row */}
+      <div className="flex justify-around mt-auto pt-2 w-full">
+        <button
+          onClick={() => onUncomplete(task.id)}
+          className="rounded-full bg-blue-100 dark:bg-blue-900 p-2 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+          title="Undo"
+        >
+          <Undo2 className="h-5 w-5 lg:h-6 lg:w-6 text-blue-700 dark:text-blue-300" />
+        </button>
+      </div>
+
+      {/* Delete — top right with confirmation */}
+      {confirmingDelete ? (
+        <div className="absolute top-1 right-1 lg:top-2 lg:right-2 flex gap-0.5 lg:gap-1 animate-in fade-in duration-150">
+          <button
+            onClick={() => onDelete(task.id)}
+            className="rounded-full bg-red-500 dark:bg-red-600 p-1 hover:bg-red-600 dark:hover:bg-red-700 transition-colors"
+            title="Confirm delete"
+          >
+            <Check className="h-3.5 w-3.5 text-white" />
+          </button>
+          <button
+            onClick={() => setConfirmingDelete(false)}
+            className="rounded-full bg-muted p-1 hover:bg-accent transition-colors"
+            title="Cancel"
+          >
+            <X className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setConfirmingDelete(true)}
+          className="absolute top-1 right-1 lg:top-2 lg:right-2 rounded-full bg-red-100 dark:bg-red-900 p-1 hover:bg-red-200 dark:hover:bg-red-800 transition-colors opacity-60 lg:opacity-0 lg:group-hover:opacity-100"
+          title="Delete"
+        >
+          <Trash2 className="h-3.5 w-3.5 text-red-700 dark:text-red-300" />
+        </button>
       )}
     </div>
   );
@@ -723,6 +875,7 @@ export default function TasksPage() {
   const [addingLocations, setAddingLocations] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [justCompleted, setJustCompleted] = useState<string | null>(null);
+  const [celebratingTask, setCelebratingTask] = useState<{ emoji: string; title: string } | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const planSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -861,8 +1014,11 @@ export default function TasksPage() {
   }, [activeId, tasks]);
 
   const handleComplete = async (taskId: string) => {
-    setJustCompleted(taskId);
     const task = tasks.find((t) => t.id === taskId);
+    setJustCompleted(taskId);
+    if (task) {
+      setCelebratingTask({ emoji: task.emoji || "✅", title: task.title });
+    }
     const todayStr = getTodayISO();
     // Always pin completed tasks to today so they show greyed out in today's planner
     if (task && task.plannedDate !== todayStr) {
@@ -1200,6 +1356,7 @@ export default function TasksPage() {
           onUnplan={handleUnplan}
           onComplete={handleComplete}
           onUncomplete={handleUncomplete}
+          onDelete={handleDelete}
           onUpdate={fetchTasks}
         />
 
@@ -1343,79 +1500,23 @@ export default function TasksPage() {
                 Done ({doneTasks.length})
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 min-[2200px]:grid-cols-10 gap-2 lg:gap-3">
-                {doneTasks.map((task) => {
-                  const isJustDone = justCompleted === task.id;
-                  return (
-                  <div
+                {doneTasks.map((task) => (
+                  <DoneTaskCard
                     key={task.id}
-                    className={cn(
-                      "group relative rounded-xl border bg-card p-3 lg:p-4 flex flex-col items-center text-center transition-all duration-700",
-                      isJustDone
-                        ? "scale-105 ring-2 ring-green-400 border-green-400 shadow-lg shadow-green-200/50 dark:shadow-green-900/50"
-                        : "border-muted opacity-50"
-                    )}
-                  >
-                    {isJustDone && (
-                      <div className="absolute -top-2 -right-2 text-2xl animate-bounce">
-                        🎉
-                      </div>
-                    )}
-                    <span className={cn(
-                      "text-3xl lg:text-5xl 2xl:text-6xl leading-none mb-1.5 lg:mb-2 transition-all duration-700",
-                      !isJustDone && "grayscale"
-                    )}>
-                      {task.emoji || "\ud83d\udccc"}
-                    </span>
-                    <span className={cn(
-                      "font-bold text-sm lg:text-base 2xl:text-lg leading-tight line-clamp-2 transition-all duration-700",
-                      isJustDone
-                        ? "text-green-700 dark:text-green-400"
-                        : "line-through text-muted-foreground"
-                    )}>
-                      {isJustDone ? `${task.title} ✓` : task.title}
-                    </span>
-                    <span className="text-[11px] lg:text-xs 2xl:text-sm text-muted-foreground mt-1">
-                      {formatMinutes(task.estimatedMinutes)}
-                    </span>
-                    {(task.tags?.length ?? 0) > 0 && (
-                      <div className="flex gap-1 flex-wrap justify-center mt-1.5">
-                        {task.tags!.map((tag) => (
-                          <Badge
-                            key={tag}
-                            variant="outline"
-                            className="text-[10px] lg:text-xs px-1.5 py-0"
-                          >
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="absolute top-1 right-1 lg:top-2 lg:right-2 flex lg:hidden lg:group-hover:flex gap-0.5 lg:gap-1">
-                      <button
-                        onClick={() => handleUncomplete(task.id)}
-                        className="rounded-full bg-blue-100 dark:bg-blue-900 p-1 lg:p-1.5 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
-                        title="Undo"
-                      >
-                        <Undo2 className="h-3 w-3 lg:h-4 lg:w-4 text-blue-700 dark:text-blue-300" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(task.id)}
-                        className="rounded-full bg-red-100 dark:bg-red-900 p-1 lg:p-1.5 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-3 w-3 lg:h-4 lg:w-4 text-red-700 dark:text-red-300" />
-                      </button>
-                    </div>
-                  </div>
-                  );
-                })}
+                    task={task}
+                    isJustDone={justCompleted === task.id}
+                    onUncomplete={handleUncomplete}
+                    onDelete={handleDelete}
+                  />
+                ))}
               </div>
             </>
           )}
         </>
         )}
       </DndContext>
+
+      <Celebration task={celebratingTask} onDone={() => setCelebratingTask(null)} />
     </div>
   );
 }
