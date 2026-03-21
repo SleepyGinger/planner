@@ -1268,24 +1268,17 @@ export default function TasksPage() {
 
       {/* Progress blocks */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <div className="flex justify-between items-baseline text-sm font-medium">
             <div className="flex items-baseline gap-1.5">
-              <span>Days</span>
+              <span>Free Days</span>
               <span className={cn("text-lg font-bold tabular-nums", getGreenToRedColor(daysPct))}>{Math.round(daysPct)}%</span>
             </div>
             <span className="text-muted-foreground">{daysLeft} left</span>
           </div>
-          <div className="flex gap-0.5 flex-wrap">
-            {Array.from({ length: totalBusinessDays }).map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "h-3 w-3 lg:h-4 lg:w-4 rounded-sm transition-colors",
-                  i < daysElapsed ? getGreenToRedBg(daysPct) : "bg-muted"
-                )}
-              />
-            ))}
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xs text-muted-foreground">Total days left</span>
+            <span className="text-sm font-bold tabular-nums">{Math.max(0, Math.ceil((new Date("2026-04-20").getTime() - Date.now()) / (1000 * 60 * 60 * 24)))}</span>
           </div>
         </div>
         <div className="space-y-1.5">
