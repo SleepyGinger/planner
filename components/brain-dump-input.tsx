@@ -148,7 +148,7 @@ export function BrainDumpInput({ onTasksCreated, existingTags, minSortOrder = 0 
               handleOrganizeAndSave();
             }
           }}
-          className="resize-none text-4xl lg:text-5xl leading-relaxed min-h-[30vh]"
+          className="resize-none !text-5xl leading-relaxed min-h-[30vh]"
         />
         <div className="flex gap-4 justify-center max-w-md mx-auto">
           <Button

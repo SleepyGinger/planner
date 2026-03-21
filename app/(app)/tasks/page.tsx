@@ -68,6 +68,52 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+const GREEN_TO_RED = [
+  ["text-green-500", "bg-green-500"],     // 0-9%
+  ["text-green-400", "bg-green-400"],     // 10-19%
+  ["text-lime-500", "bg-lime-500"],       // 20-29%
+  ["text-lime-400", "bg-lime-400"],       // 30-39%
+  ["text-yellow-500", "bg-yellow-500"],   // 40-49%
+  ["text-yellow-600", "bg-yellow-600"],   // 50-59%
+  ["text-amber-500", "bg-amber-500"],     // 60-69%
+  ["text-orange-500", "bg-orange-500"],   // 70-79%
+  ["text-orange-600", "bg-orange-600"],   // 80-89%
+  ["text-red-500", "bg-red-500"],         // 90-100%
+];
+
+const RED_TO_GREEN = [
+  ["text-red-500", "bg-red-500"],         // 0-9%
+  ["text-orange-600", "bg-orange-600"],   // 10-19%
+  ["text-orange-500", "bg-orange-500"],   // 20-29%
+  ["text-amber-500", "bg-amber-500"],     // 30-39%
+  ["text-yellow-600", "bg-yellow-600"],   // 40-49%
+  ["text-yellow-500", "bg-yellow-500"],   // 50-59%
+  ["text-lime-400", "bg-lime-400"],       // 60-69%
+  ["text-lime-500", "bg-lime-500"],       // 70-79%
+  ["text-green-400", "bg-green-400"],     // 80-89%
+  ["text-green-500", "bg-green-500"],     // 90-100%
+];
+
+function getPctIndex(pct: number): number {
+  return Math.min(Math.floor(pct / 10), 9);
+}
+
+function getGreenToRedColor(pct: number): string {
+  return GREEN_TO_RED[getPctIndex(pct)][0];
+}
+
+function getGreenToRedBg(pct: number): string {
+  return GREEN_TO_RED[getPctIndex(pct)][1];
+}
+
+function getRedToGreenColor(pct: number): string {
+  return RED_TO_GREEN[getPctIndex(pct)][0];
+}
+
+function getRedToGreenBg(pct: number): string {
+  return RED_TO_GREEN[getPctIndex(pct)][1];
+}
+
 function TagEditor({
   taskId,
   tags,
@@ -1200,28 +1246,8 @@ export default function TasksPage() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-2xl lg:text-3xl font-bold">Tasks</h2>
-          <span className="text-muted-foreground text-sm lg:text-base">
-            {todoCount} to do{scheduledCount > 0 && `, ${scheduledCount} scheduled`}, {doneCount} done
-          </span>
-        </div>
+        <h2 className="text-2xl lg:text-3xl font-bold">Free Time</h2>
         <div className="flex gap-2">
-          {needsLocations && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddLocations}
-              disabled={addingLocations}
-            >
-              {addingLocations ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <MapPin className="h-4 w-4 mr-1" />
-              )}
-              Add Locations
-            </Button>
-          )}
           {needsEmojis && (
             <Button
               variant="outline"
@@ -1243,8 +1269,11 @@ export default function TasksPage() {
       {/* Progress blocks */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <div className="flex justify-between text-sm font-medium">
-            <span>Days</span>
+          <div className="flex justify-between items-baseline text-sm font-medium">
+            <div className="flex items-baseline gap-1.5">
+              <span>Days</span>
+              <span className={cn("text-lg font-bold tabular-nums", getGreenToRedColor(daysPct))}>{Math.round(daysPct)}%</span>
+            </div>
             <span className="text-muted-foreground">{daysLeft} left</span>
           </div>
           <div className="flex gap-0.5 flex-wrap">
@@ -1253,15 +1282,18 @@ export default function TasksPage() {
                 key={i}
                 className={cn(
                   "h-3 w-3 lg:h-4 lg:w-4 rounded-sm transition-colors",
-                  i < daysElapsed ? "bg-blue-500" : "bg-muted"
+                  i < daysElapsed ? getGreenToRedBg(daysPct) : "bg-muted"
                 )}
               />
             ))}
           </div>
         </div>
         <div className="space-y-1.5">
-          <div className="flex justify-between text-sm font-medium">
-            <span>Tasks</span>
+          <div className="flex justify-between items-baseline text-sm font-medium">
+            <div className="flex items-baseline gap-1.5">
+              <span>Tasks</span>
+              <span className={cn("text-lg font-bold tabular-nums", getRedToGreenColor(tasksPct))}>{Math.round(tasksPct)}%</span>
+            </div>
             <span className="text-muted-foreground">{doneCount}/{totalTasks}</span>
           </div>
           <div className="flex gap-0.5 flex-wrap">
@@ -1270,7 +1302,7 @@ export default function TasksPage() {
                 key={i}
                 className={cn(
                   "h-3 w-3 lg:h-4 lg:w-4 rounded-sm transition-colors",
-                  i < doneCount ? "bg-green-500" : "bg-muted"
+                  i < doneCount ? getRedToGreenBg(tasksPct) : "bg-muted"
                 )}
               />
             ))}
