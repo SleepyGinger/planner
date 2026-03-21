@@ -68,6 +68,40 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+const GREEN_TO_RED = [
+  "text-green-500",   // 0-9%
+  "text-green-400",   // 10-19%
+  "text-lime-500",    // 20-29%
+  "text-lime-400",    // 30-39%
+  "text-yellow-500",  // 40-49%
+  "text-yellow-600",  // 50-59%
+  "text-amber-500",   // 60-69%
+  "text-orange-500",  // 70-79%
+  "text-orange-600",  // 80-89%
+  "text-red-500",     // 90-100%
+];
+
+const RED_TO_GREEN = [
+  "text-red-500",     // 0-9%
+  "text-orange-600",  // 10-19%
+  "text-orange-500",  // 20-29%
+  "text-amber-500",   // 30-39%
+  "text-yellow-600",  // 40-49%
+  "text-yellow-500",  // 50-59%
+  "text-lime-400",    // 60-69%
+  "text-lime-500",    // 70-79%
+  "text-green-400",   // 80-89%
+  "text-green-500",   // 90-100%
+];
+
+function getGreenToRedColor(pct: number): string {
+  return GREEN_TO_RED[Math.min(Math.floor(pct / 10), 9)];
+}
+
+function getRedToGreenColor(pct: number): string {
+  return RED_TO_GREEN[Math.min(Math.floor(pct / 10), 9)];
+}
+
 function TagEditor({
   taskId,
   tags,
@@ -1207,21 +1241,6 @@ export default function TasksPage() {
           </span>
         </div>
         <div className="flex gap-2">
-          {needsLocations && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAddLocations}
-              disabled={addingLocations}
-            >
-              {addingLocations ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <MapPin className="h-4 w-4 mr-1" />
-              )}
-              Add Locations
-            </Button>
-          )}
           {needsEmojis && (
             <Button
               variant="outline"
@@ -1240,40 +1259,24 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {/* Progress blocks */}
+      {/* Progress percentages */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-sm font-medium">
-            <span>Days</span>
-            <span className="text-muted-foreground">{daysLeft} left</span>
-          </div>
-          <div className="flex gap-0.5 flex-wrap">
-            {Array.from({ length: totalBusinessDays }).map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "h-3 w-3 lg:h-4 lg:w-4 rounded-sm transition-colors",
-                  i < daysElapsed ? "bg-blue-500" : "bg-muted"
-                )}
-              />
-            ))}
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm font-medium text-muted-foreground">Days</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className={cn("text-2xl lg:text-3xl font-bold tabular-nums", getGreenToRedColor(daysPct))}>
+              {Math.round(daysPct)}%
+            </span>
+            <span className="text-xs text-muted-foreground">{daysLeft} left</span>
           </div>
         </div>
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-sm font-medium">
-            <span>Tasks</span>
-            <span className="text-muted-foreground">{doneCount}/{totalTasks}</span>
-          </div>
-          <div className="flex gap-0.5 flex-wrap">
-            {Array.from({ length: totalTasks }).map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "h-3 w-3 lg:h-4 lg:w-4 rounded-sm transition-colors",
-                  i < doneCount ? "bg-green-500" : "bg-muted"
-                )}
-              />
-            ))}
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm font-medium text-muted-foreground">Tasks</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className={cn("text-2xl lg:text-3xl font-bold tabular-nums", getRedToGreenColor(tasksPct))}>
+              {Math.round(tasksPct)}%
+            </span>
+            <span className="text-xs text-muted-foreground">{doneCount}/{totalTasks}</span>
           </div>
         </div>
       </div>
