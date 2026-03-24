@@ -21,7 +21,6 @@ export interface Task {
   emoji: string;
   description: string;
   category: TaskCategory;
-  priority: 1 | 2 | 3;
   estimatedMinutes: number;
   status: TaskStatus;
   plannedDate: string | null; // ISO date string YYYY-MM-DD
@@ -47,7 +46,6 @@ export interface ParsedTask {
   emoji: string;
   description: string;
   category: TaskCategory;
-  priority: 1 | 2 | 3;
   estimatedMinutes: number;
   tags?: string[];
   notes?: string;

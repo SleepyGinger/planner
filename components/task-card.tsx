@@ -28,18 +28,6 @@ import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/dates";
 import { formatMinutes } from "@/lib/format";
 
-const priorityColors: Record<number, string> = {
-  1: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-  2: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  3: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-};
-
-const priorityLabels: Record<number, string> = {
-  1: "High",
-  2: "Medium",
-  3: "Low",
-};
-
 const categoryEmoji: Record<TaskCategory, string> = {
   errand: "🏃",
   project: "🔨",
@@ -60,7 +48,6 @@ export function TaskCard({ task, onUpdate, onPlanDate, compact }: TaskCardProps)
   const [editTitle, setEditTitle] = useState(task.title);
   const [editDescription, setEditDescription] = useState(task.description);
   const [editCategory, setEditCategory] = useState<TaskCategory>(task.category);
-  const [editPriority, setEditPriority] = useState(task.priority);
   const [editMinutes, setEditMinutes] = useState(task.estimatedMinutes);
 
   const handleToggle = async () => {
@@ -82,7 +69,6 @@ export function TaskCard({ task, onUpdate, onPlanDate, compact }: TaskCardProps)
       title: editTitle,
       description: editDescription,
       category: editCategory,
-      priority: editPriority as 1 | 2 | 3,
       estimatedMinutes: editMinutes,
     });
     setEditOpen(false);
@@ -115,9 +101,6 @@ export function TaskCard({ task, onUpdate, onPlanDate, compact }: TaskCardProps)
             </span>
             <Badge variant="outline" className="text-xs">
               {categoryEmoji[task.category]} {task.category}
-            </Badge>
-            <Badge className={cn("text-xs", priorityColors[task.priority])}>
-              {priorityLabels[task.priority]}
             </Badge>
           </div>
           {!compact && task.description && (
@@ -182,19 +165,6 @@ export function TaskCard({ task, onUpdate, onPlanDate, compact }: TaskCardProps)
                           {categoryEmoji[c]} {c}
                         </SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={String(editPriority)}
-                    onValueChange={(v) => setEditPriority(Number(v) as 1 | 2 | 3)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">High</SelectItem>
-                      <SelectItem value="2">Medium</SelectItem>
-                      <SelectItem value="3">Low</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

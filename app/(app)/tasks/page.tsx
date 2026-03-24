@@ -13,7 +13,7 @@ import {
   planTask,
   unplanTask,
 } from "@/lib/firestore";
-import { Task, CATEGORIES, TaskCategory } from "@/lib/types";
+import { Task, TaskCategory } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +67,8 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+
+const FUN_CATEGORIES = new Set(["fun", "wellness", "learning"]);
 
 const GREEN_TO_RED = [
   ["text-green-500", "bg-green-500"],     // 0-9%
@@ -220,24 +222,56 @@ function TagEditor({
 function EmojiEditor({
   taskId,
   emoji,
+  category,
   onUpdate,
 }: {
   taskId: string;
   emoji: string;
+  category: TaskCategory;
   onUpdate: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(emoji);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const didLongPress = useRef(false);
+
+  const handlePointerDown = () => {
+    didLongPress.current = false;
+    longPressTimer.current = setTimeout(async () => {
+      didLongPress.current = true;
+      const newCategory = FUN_CATEGORIES.has(category) ? "errand" : "fun";
+      await updateTask(taskId, { category: newCategory as TaskCategory });
+      onUpdate();
+    }, 500);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    if (!didLongPress.current) {
+      e.stopPropagation();
+      setEditing(true);
+    }
+  };
+
+  const handlePointerCancel = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
 
   if (!editing) {
     return (
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setEditing(true);
-        }}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onPointerLeave={handlePointerCancel}
         className="text-3xl lg:text-5xl 2xl:text-6xl leading-none mb-1.5 lg:mb-2 select-none hover:scale-110 transition-transform cursor-pointer"
-        title="Click to change emoji"
+        title="Tap to edit emoji · Hold to toggle fun/chore"
       >
         {emoji || "\ud83d\udccc"}
       </button>
@@ -453,8 +487,7 @@ function SortableTaskCard({
       style={style}
       className={cn(
         "group relative rounded-xl border bg-card p-3 lg:p-4 flex flex-col items-center text-center transition-shadow hover:shadow-md",
-        task.priority === 1 && "border-2 border-red-400 dark:border-red-700",
-        task.priority === 3 && "border-muted",
+        FUN_CATEGORIES.has(task.category) && "border-2 border-sky-400 dark:border-sky-600",
         isDragging && "opacity-30"
       )}
     >
@@ -467,7 +500,7 @@ function SortableTaskCard({
         <GripVertical className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
       </div>
 
-      <EmojiEditor taskId={task.id} emoji={task.emoji || "\ud83d\udccc"} onUpdate={onUpdate} />
+      <EmojiEditor taskId={task.id} emoji={task.emoji || "\ud83d\udccc"} category={task.category} onUpdate={onUpdate} />
       <TitleEditor taskId={task.id} title={task.title} onUpdate={onUpdate} />
       {/* Tags */}
       {tags.length > 0 && (
@@ -877,8 +910,7 @@ function TaskCardOverlay({ task }: { task: Task }) {
     <div
       className={cn(
         "rounded-xl border bg-card p-3 lg:p-4 flex flex-col items-center text-center shadow-2xl ring-2 ring-primary/20 scale-105",
-        task.priority === 1 && "border-red-300 dark:border-red-800",
-        task.priority === 3 && "border-muted"
+        FUN_CATEGORIES.has(task.category) && "border-sky-400 dark:border-sky-600"
       )}
     >
       <span className="text-3xl lg:text-5xl 2xl:text-6xl leading-none mb-1.5 lg:mb-2">
@@ -911,12 +943,10 @@ export default function TasksPage() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterCategory] = useState<TaskCategory | "all">(
-    "all"
-  );
+  const [filterCategory, setFilterCategory] = useState<"all" | "fun" | "chores">("all");
   const [filterTag, setFilterTag] = useState<string>("all");
   const [filterDuration, setFilterDuration] = useState<"all" | "quick" | "quarter" | "half" | "full">("all");
-  const [sortMode, setSortMode] = useState<"custom" | "priority" | "duration">("custom");
+  const [sortMode, setSortMode] = useState<"custom" | "duration">("custom");
   const [backfilling, setBackfilling] = useState(false);
   const [addingLocations, setAddingLocations] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -979,7 +1009,7 @@ export default function TasksPage() {
     const aOrder = a.plannedSortOrder ?? Infinity;
     const bOrder = b.plannedSortOrder ?? Infinity;
     if (aOrder !== bOrder) return aOrder - bOrder;
-    return a.priority - b.priority;
+    return 0;
   });
   const plannedMinutes = plannedForSelected
     .filter((t) => t.status === "todo")
@@ -991,7 +1021,7 @@ export default function TasksPage() {
   const todoTasks = tasks
     .filter((t) => t.status === "todo")
     .filter((t) => !t.plannedDate || isOverdue(t))
-    .filter((t) => filterCategory === "all" || t.category === filterCategory)
+    .filter((t) => filterCategory === "all" || (filterCategory === "fun" ? FUN_CATEGORIES.has(t.category) : !FUN_CATEGORIES.has(t.category)))
     .filter((t) => filterTag === "all" || (filterTag === "?" ? (!t.tags || t.tags.length === 0) : t.tags?.includes(filterTag)))
     .filter((t) => {
       if (filterDuration === "all") return true;
@@ -1008,19 +1038,14 @@ export default function TasksPage() {
       const bOverdue = isOverdue(b);
       if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
 
-      const aOrder = a.sortOrder ?? Infinity;
-      const bOrder = b.sortOrder ?? Infinity;
-      if (sortMode === "priority") {
-        if (a.priority !== b.priority) return a.priority - b.priority;
-        return aOrder - bOrder;
-      }
+      const aOrder = a.sortOrder ?? 0;
+      const bOrder = b.sortOrder ?? 0;
       if (sortMode === "duration") {
         if (a.estimatedMinutes !== b.estimatedMinutes) return a.estimatedMinutes - b.estimatedMinutes;
         return aOrder - bOrder;
       }
       // custom
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return a.priority - b.priority;
+      return aOrder - bOrder;
     });
 
   const minSortOrder = useMemo(() => {
@@ -1039,7 +1064,7 @@ export default function TasksPage() {
 
   const doneTasks = tasks
     .filter((t) => t.status === "done")
-    .filter((t) => filterCategory === "all" || t.category === filterCategory)
+    .filter((t) => filterCategory === "all" || (filterCategory === "fun" ? FUN_CATEGORIES.has(t.category) : !FUN_CATEGORIES.has(t.category)))
     .filter((t) => filterTag === "all" || (filterTag === "?" ? (!t.tags || t.tags.length === 0) : t.tags?.includes(filterTag)))
     .filter((t) => {
       if (filterDuration === "all") return true;
@@ -1065,10 +1090,9 @@ export default function TasksPage() {
     if (task) {
       setCelebratingTask({ emoji: task.emoji || "✅", title: task.title });
     }
-    const todayStr = getTodayISO();
-    // Always pin completed tasks to today so they show greyed out in today's planner
-    if (task && task.plannedDate !== todayStr) {
-      await planTask(taskId, todayStr);
+    // Pin completed tasks to the selected date so they show in that day's planner
+    if (task && task.plannedDate !== selectedDate) {
+      await planTask(taskId, selectedDate);
     }
     await completeTask(taskId);
     await fetchTasks();
@@ -1234,14 +1258,26 @@ export default function TasksPage() {
   }
 
   const daysLeft = getDaysRemaining();
-  const totalBusinessDays = getUsableDays().filter((d) => {
-    const date = parseISO(d);
-    return !isWeekendDate(date);
-  }).length;
+  const businessDays = getUsableDays().filter((d) => !isWeekendDate(parseISO(d)));
+  const totalBusinessDays = businessDays.length;
   const daysElapsed = totalBusinessDays - daysLeft;
   const daysPct = totalBusinessDays > 0 ? (daysElapsed / totalBusinessDays) * 100 : 0;
   const totalTasks = todoCount + scheduledCount + doneCount;
   const tasksPct = totalTasks > 0 ? (doneCount / totalTasks) * 100 : 0;
+
+  // Map each business day to its dominant category type (fun vs chores)
+  const funTasks = tasks.filter((t) => FUN_CATEGORIES.has(t.category));
+  const choresTasks = tasks.filter((t) => !FUN_CATEGORIES.has(t.category));
+  const funDone = funTasks.filter((t) => t.status === "done").length;
+  const choresDone = choresTasks.filter((t) => t.status === "done").length;
+  const funPct = funTasks.length > 0 ? Math.round((funDone / funTasks.length) * 100) : 0;
+  const choresPct = choresTasks.length > 0 ? Math.round((choresDone / choresTasks.length) * 100) : 0;
+  const dayColors = businessDays.map((day) => {
+    const dayTasks = tasks.filter((t) => t.plannedDate === day);
+    if (dayTasks.length === 0) return "none";
+    const funCount = dayTasks.filter((t) => FUN_CATEGORIES.has(t.category)).length;
+    return funCount > dayTasks.length / 2 ? "fun" : "chores";
+  });
 
   return (
     <div className="space-y-3">
@@ -1277,12 +1313,13 @@ export default function TasksPage() {
             <span className="text-muted-foreground">{daysLeft} left</span>
           </div>
           <div className="flex gap-0.5 flex-wrap">
-            {Array.from({ length: totalBusinessDays }).map((_, i) => (
+            {businessDays.map((_, i) => (
               <div
                 key={i}
                 className={cn(
-                  "h-3 w-3 lg:h-4 lg:w-4 rounded-sm transition-colors",
-                  i < daysElapsed ? getGreenToRedBg(daysPct) : "bg-muted"
+                  "h-3 w-3 lg:h-4 lg:w-4 rounded-sm transition-colors border-2",
+                  i < daysElapsed ? getGreenToRedBg(daysPct) : "bg-muted",
+                  dayColors[i] === "fun" ? "border-sky-400" : dayColors[i] === "chores" ? "border-amber-500" : "border-transparent"
                 )}
               />
             ))}
@@ -1295,18 +1332,28 @@ export default function TasksPage() {
         <div className="space-y-1.5">
           <div className="flex justify-between items-baseline text-sm font-medium">
             <div className="flex items-baseline gap-1.5">
-              <span>Tasks</span>
+              <span>Dos</span>
               <span className={cn("text-lg font-bold tabular-nums", getRedToGreenColor(tasksPct))}>{Math.round(tasksPct)}%</span>
+              <span className="text-xs text-sky-400 font-medium">{funPct}% fun</span>
+              <span className="text-xs text-amber-500 font-medium">{choresPct}% chores</span>
             </div>
             <span className="text-muted-foreground">{doneCount}/{totalTasks}</span>
           </div>
           <div className="flex gap-0.5 flex-wrap">
-            {Array.from({ length: totalTasks }).map((_, i) => (
+            {[...tasks].sort((a, b) => {
+              const aDone = a.status === "done" ? 0 : 1;
+              const bDone = b.status === "done" ? 0 : 1;
+              if (aDone !== bDone) return aDone - bDone;
+              const aFun = FUN_CATEGORIES.has(a.category) ? 0 : 1;
+              const bFun = FUN_CATEGORIES.has(b.category) ? 0 : 1;
+              return aFun - bFun;
+            }).map((t, i) => (
               <div
-                key={i}
+                key={t.id}
                 className={cn(
-                  "h-3 w-3 lg:h-4 lg:w-4 rounded-sm transition-colors",
-                  i < doneCount ? getRedToGreenBg(tasksPct) : "bg-muted"
+                  "h-3 w-3 lg:h-4 lg:w-4 rounded-sm transition-colors border-2",
+                  t.status === "done" ? getRedToGreenBg(tasksPct) : "bg-muted",
+                  FUN_CATEGORIES.has(t.category) ? "border-sky-400" : "border-amber-500"
                 )}
               />
             ))}
@@ -1396,12 +1443,35 @@ export default function TasksPage() {
           onUpdate={fetchTasks}
         />
 
-        {/* Sort mode pills */}
+        {/* Filters — all on one line */}
         <div className="flex gap-1.5 items-center flex-wrap">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wide mr-0.5">Sort</span>
+          {/* Category */}
+          {([
+            { value: "all" as const, label: "All" },
+            { value: "fun" as const, label: "Fun" },
+            { value: "chores" as const, label: "Chores" },
+          ]).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setFilterCategory(opt.value)}
+              className={cn(
+                "text-xs px-2.5 py-1 rounded-full border transition-colors",
+                filterCategory === opt.value
+                  ? opt.value === "fun" ? "bg-sky-400 text-white border-sky-400"
+                    : opt.value === "chores" ? "bg-amber-500 text-white border-amber-500"
+                    : "bg-primary text-primary-foreground border-primary"
+                  : "bg-card hover:bg-accent border-border"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+
+          <span className="text-muted-foreground/40">|</span>
+
+          {/* Sort */}
           {([
             { value: "custom" as const, label: "Custom" },
-            { value: "priority" as const, label: "Priority" },
             { value: "duration" as const, label: "Duration" },
           ]).map((opt) => (
             <button
@@ -1417,64 +1487,46 @@ export default function TasksPage() {
               {opt.label}
             </button>
           ))}
-        </div>
 
-        {/* Location filter pills */}
-        {allTags.length > 0 && (
-          <div className="flex gap-1.5 items-center flex-wrap">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide mr-0.5">Location</span>
+          <span className="text-muted-foreground/40">|</span>
+
+          {/* Location */}
+          {allTags.map((tag) => (
             <button
-              onClick={() => setFilterTag("all")}
+              key={tag}
+              onClick={() => setFilterTag(filterTag === tag ? "all" : tag)}
               className={cn(
                 "text-xs px-2.5 py-1 rounded-full border transition-colors",
-                filterTag === "all"
+                filterTag === tag
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-card hover:bg-accent border-border"
               )}
             >
-              All
+              {tag}
             </button>
-            {allTags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() =>
-                  setFilterTag(filterTag === tag ? "all" : tag)
-                }
-                className={cn(
-                  "text-xs px-2.5 py-1 rounded-full border transition-colors",
-                  filterTag === tag
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card hover:bg-accent border-border"
-                )}
-              >
-                {tag}
-              </button>
-            ))}
-            {needsLocations && (
-              <button
-                onClick={() => setFilterTag(filterTag === "?" ? "all" : "?")}
-                className={cn(
-                  "text-xs px-2.5 py-1 rounded-full border transition-colors",
-                  filterTag === "?"
-                    ? "bg-orange-500 text-white border-orange-500"
-                    : "bg-card hover:bg-accent border-border text-orange-500"
-                )}
-              >
-                ?
-              </button>
-            )}
-          </div>
-        )}
+          ))}
+          {needsLocations && (
+            <button
+              onClick={() => setFilterTag(filterTag === "?" ? "all" : "?")}
+              className={cn(
+                "text-xs px-2.5 py-1 rounded-full border transition-colors",
+                filterTag === "?"
+                  ? "bg-orange-500 text-white border-orange-500"
+                  : "bg-card hover:bg-accent border-border text-orange-500"
+              )}
+            >
+              ?
+            </button>
+          )}
 
-        {/* Duration filter pills */}
-        <div className="flex gap-1.5 items-center flex-wrap">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wide mr-0.5">Duration</span>
+          <span className="text-muted-foreground/40">|</span>
+
+          {/* Duration */}
           {([
-            { value: "all" as const, label: "All" },
             { value: "quick" as const, label: "Quick" },
-            { value: "quarter" as const, label: "Quarter day" },
-            { value: "half" as const, label: "Half day" },
-            { value: "full" as const, label: "Full day" },
+            { value: "quarter" as const, label: "Quarter" },
+            { value: "half" as const, label: "Half" },
+            { value: "full" as const, label: "Full" },
           ]).map((opt) => (
             <button
               key={opt.value}

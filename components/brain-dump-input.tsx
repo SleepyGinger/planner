@@ -30,7 +30,6 @@ export function BrainDumpInput({ onTasksCreated, existingTags, minSortOrder = 0 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickTitle, setQuickTitle] = useState("");
   const [quickCategory, setQuickCategory] = useState<TaskCategory>("errand");
-  const [quickPriority, setQuickPriority] = useState<1 | 2 | 3>(2);
   const [quickMinutes, setQuickMinutes] = useState(120);
   const [quickTags, setQuickTags] = useState("");
 
@@ -101,7 +100,6 @@ export function BrainDumpInput({ onTasksCreated, existingTags, minSortOrder = 0 
             emoji: "\ud83d\udccc",
             description: "",
             category: quickCategory,
-            priority: quickPriority,
             estimatedMinutes: quickMinutes,
             tags,
           },
@@ -187,32 +185,6 @@ export function BrainDumpInput({ onTasksCreated, existingTags, minSortOrder = 0 
             onChange={(e) => setQuickTitle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
           />
-
-          {/* Priority pills */}
-          <div className="flex gap-2">
-            {([
-              { value: 1 as const, label: "Must" },
-              { value: 2 as const, label: "Should" },
-              { value: 3 as const, label: "Could" },
-            ]).map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setQuickPriority(opt.value)}
-                className={cn(
-                  "flex-1 text-xs py-2 rounded-lg border font-medium transition-colors",
-                  quickPriority === opt.value
-                    ? opt.value === 1
-                      ? "bg-red-600 text-white border-red-600"
-                      : opt.value === 2
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-muted text-foreground border-muted"
-                    : "bg-card hover:bg-accent border-border"
-                )}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
 
           {/* Duration pills */}
           <div className="flex gap-2">

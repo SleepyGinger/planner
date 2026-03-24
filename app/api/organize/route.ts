@@ -47,8 +47,7 @@ For each task, provide:
 - emoji: a single emoji that best represents this specific task (be creative and specific, not generic)
 - description: leave empty string ""
 - notes: any extra details, context, specifics, or instructions that don't fit in the title. If the task is self-explanatory from the title alone, leave as empty string "". Most simple tasks need no notes. Only add notes when there are real details worth remembering.
-- category: one of ${CATEGORIES.join(", ")}
-- priority: 1 (must do), 2 (should do), or 3 (could do)
+- category: one of ${CATEGORIES.join(", ")}. Classification rules: arts/crafts/ceramics = fun, hanging with friends/social plans = fun, sports/surfing/outdoors = fun, reading/learning = fun or learning, museums/experiences = fun. Errands/chores/appointments/shopping/admin/logistics = errand. Building software/apps/creative projects = fun. Home maintenance/cleaning/organizing = errand. Health appointments = wellness. Default to errand if unsure.
 - estimatedMinutes: one of these values only: 15 (quick task), 120 (quarter day), 240 (half day), or 480 (full day). Pick the closest fit.
 ${locationInstruction}
 - plannedDate: If the brain dump mentions a specific date or says "today", "tomorrow", "monday", etc., resolve it to an ISO date (YYYY-MM-DD) relative to today (${today}). If no date is mentioned for a task, use null. When a date applies to all tasks in the dump (e.g. "for today:" at the top), apply it to every task.

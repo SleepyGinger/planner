@@ -20,7 +20,6 @@ function sanitizeParsedTask(t: ParsedTask): ParsedTask {
     emoji: t.emoji || "\ud83d\udccc",
     description: t.description || "",
     category: CATEGORIES.includes(t.category as TaskCategory) ? t.category : "errand",
-    priority: ([1, 2, 3] as const).includes(t.priority) ? t.priority : 2,
     estimatedMinutes: typeof t.estimatedMinutes === "number" ? t.estimatedMinutes : 120,
     tags: Array.isArray(t.tags) ? t.tags.filter((tag): tag is string => typeof tag === "string") : [],
     notes: typeof t.notes === "string" ? t.notes : "",
