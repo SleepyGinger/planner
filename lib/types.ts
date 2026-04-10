@@ -53,14 +53,7 @@ export interface ParsedTask {
 }
 
 // The 28 business days off: March 11 - April 17, 2026
-// April 6-10 reserved for daughter care
 export const TIME_OFF_START = "2026-03-11";
 export const TIME_OFF_END = "2026-04-17";
-export const BLOCKED_DATES = [
-  "2026-04-06",
-  "2026-04-07",
-  "2026-04-08",
-  "2026-04-09",
-  "2026-04-10",
-];
-export const TOTAL_USABLE_DAYS = 23;
+export const BLOCKED_DATES: string[] = [];
+export const TOTAL_USABLE_DAYS = 28;

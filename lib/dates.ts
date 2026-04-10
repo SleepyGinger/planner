@@ -49,6 +49,10 @@ export function formatDateShort(iso: string): string {
   return format(parseISO(iso), "MMM d");
 }
 
+export function formatDayOfWeek(iso: string): string {
+  return format(parseISO(iso), "EEE");
+}
+
 export function isToday(iso: string): boolean {
   return isSameDay(parseISO(iso), new Date());
 }

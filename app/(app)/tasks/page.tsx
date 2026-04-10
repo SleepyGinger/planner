@@ -42,6 +42,7 @@ import {
   getDaysRemaining,
   formatDate,
   formatDateShort,
+  formatDayOfWeek,
   getTodayISO,
   isToday,
 } from "@/lib/dates";
@@ -1000,8 +1001,8 @@ export default function TasksPage() {
     tasks.filter((t) => t.plannedDate === date);
   const currentDayIndex = usableDays.indexOf(selectedDate);
   const visibleDays = usableDays.slice(
-    Math.max(0, currentDayIndex - 3),
-    Math.min(usableDays.length, currentDayIndex + 4)
+    Math.max(0, currentDayIndex - 7),
+    Math.min(usableDays.length, currentDayIndex + 8)
   );
   const plannedForSelected = tasksForDate(selectedDate).sort((a, b) => {
     // Done tasks go to the end
@@ -1371,7 +1372,7 @@ export default function TasksPage() {
       )}
 
       {/* Calendar strip */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-1">
+      <div className="flex items-stretch gap-1 overflow-x-auto pb-1">
         <Button
           variant="ghost"
           size="icon"
@@ -1391,7 +1392,7 @@ export default function TasksPage() {
               key={d}
               onClick={() => setSelectedDate(d)}
               className={cn(
-                "flex flex-col items-center px-3 py-2 rounded-lg text-xs transition-colors shrink-0",
+                "flex flex-col items-center justify-center flex-1 min-w-[56px] px-2 py-2 rounded-lg text-xs transition-colors",
                 d === selectedDate
                   ? "bg-primary text-primary-foreground"
                   : isToday(d)
@@ -1400,6 +1401,7 @@ export default function TasksPage() {
               )}
             >
               <span className="font-medium">{formatDateShort(d)}</span>
+              <span className="text-[10px] opacity-75">{formatDayOfWeek(d)}</span>
               {count > 0 && (
                 <span className="text-[10px] mt-0.5 opacity-75">
                   {count} task{count > 1 ? "s" : ""}
